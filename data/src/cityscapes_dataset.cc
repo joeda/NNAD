@@ -205,6 +205,26 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
             }
         }
 
+        /*traffic light specializations */
+        if (cls == "traffic light") {
+            if (annotation.isMember("attributes")) {
+                if (annotation["attributes"].isMember("relevant") && annotation["attributes"]["relevant"].asString() == "yes") {
+                    cls = "traffic light car relevant";
+                } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "car") {
+                    cls = "traffic light car irrelevant";
+                } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "pedestrian") {
+                    cls = "traffic light pedestrian";
+                } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "bike") {
+                    cls = "traffic light bike";
+                } else {
+                    cls = "traffic light other";
+                }
+            } else {
+                std::cout << "Traffic light without attributes" << std::endl;
+            }
+
+        }
+
         /* Generate bounding box list */
         if (m_instanceDict.count(cls) > 0) {
             BoundingBox boundingBox;

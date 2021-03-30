@@ -86,5 +86,10 @@ private:
         {"bicycle", 7},
         {"traffic light", 8},
         {"traffic sign", 9},
+        {"traffic light car relevant", 10},
+        {"traffic light car irrelevant", 11},
+        {"traffic light pedestrian", 12},
+        {"traffic light bike", 13},
+        {"traffic light other", 14},
     };
 };
