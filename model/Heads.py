@@ -46,11 +46,12 @@ class Heads(tf.keras.Model):
         if self.box_branch:
             box_results = self.box_branch(x, train_batch_norm=train_batch_norm)
             if self.box_delta_regression:
-                bb_targets, cls_targets, obj_targets, embedding_targets, delta_targets = box_results
+                bb_targets, cls_targets, tl_targets, obj_targets, embedding_targets, delta_targets = box_results
             else:
-                bb_targets, cls_targets, obj_targets, embedding_targets = box_results
+                bb_targets, cls_targets, tl_targets, obj_targets, embedding_targets = box_results
             results['bb_targets_offset'] = bb_targets
             results['bb_targets_cls'] = cls_targets
+            results['bb_targets_tl'] = tl_targets
             results['bb_targets_objectness'] = obj_targets
             results['bb_targets_embedding'] = embedding_targets
             if self.box_delta_regression:
