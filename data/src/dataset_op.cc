@@ -24,6 +24,7 @@
 #include "sintel_dataset.hh"
 #include "webvision_dataset.hh"
 #include "folder_dataset.hh"
+#include "dtld_dataset.hh"
 #include "augment.hh"
 #include "bbutils.hh"
 #include "utils.hh"
@@ -54,6 +55,7 @@ public:
         std::string flyingchairsPath = checkAndGet<std::string>("flyingchairs_path", config);
         std::string sintelPath = checkAndGet<std::string>("sintel_path", config);
         std::string webvisionPath = checkAndGet<std::string>("webvision_path", config);
+        std::string dtldPath = checkAndGet<std::string>("dtld_path", config);
 
         if (mode == "train") {
             int width = checkAndGet<int>("train_image_width", config);
@@ -98,6 +100,10 @@ public:
                 auto dataset = std::make_shared<KittiDataset>(kittiPath, KittiDataset::Mode::Train);
                 datasets.push_back(std::make_shared<RandomDataset>(dataset));
             }
+            if (checkAndGet<bool>("use_dtld_train", config)) {
+                auto dataset = std::make_shared<DTLDataset>(dtldPath, DTLDataset::Mode::Train);
+                datasets.push_back(std::make_shared<RandomDataset>(dataset));
+            }
         } else if (mode == "val") {
             int width = checkAndGet<int>("eval_image_width", config);
             int height = checkAndGet<int>("eval_image_height", config);
@@ -140,6 +146,14 @@ public:
             if (checkAndGet<bool>("use_kitti_test", config)) {
                 createBBUtils(width, height);
                 auto dataset = std::make_shared<KittiDataset>(kittiPath, KittiDataset::Mode::Test);
+                datasets.push_back(std::make_shared<RandomDataset>(dataset));
+            }
+            if (checkAndGet<bool>("use_dtld_train", config)) {
+                auto dataset = std::make_shared<DTLDataset>(dtldPath, DTLDataset::Mode::Train);
+                datasets.push_back(std::make_shared<RandomDataset>(dataset));
+            }
+            if (checkAndGet<bool>("use_dtld_val", config)) {
+                auto dataset = std::make_shared<DTLDataset>(dtldPath, DTLDataset::Mode::Val);
                 datasets.push_back(std::make_shared<RandomDataset>(dataset));
             }
 
@@ -190,6 +204,10 @@ public:
                 createBBUtils(width, height);
                 auto dataset = std::make_shared<KittiDataset>(kittiPath, KittiDataset::Mode::Test);
                 datasets.push_back(dataset);
+            }
+            if (checkAndGet<bool>("use_dtld_val", config)) {
+                auto dataset = std::make_shared<DTLDataset>(dtldPath, DTLDataset::Mode::Val);
+                datasets.push_back(std::make_shared<RandomDataset>(dataset));
             }
 
             if (checkAndGet<bool>("use_folder_ds", config)) {

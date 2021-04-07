@@ -11,6 +11,11 @@
 
 namespace bfs = boost::filesystem;
 
+struct ParsedEntry {
+    BoundingBoxList boxes;
+    std::string imgPath;
+};
+
 class DTLDataset : public FileDataset {
 public:
     enum class Mode {
@@ -22,18 +27,18 @@ public:
     virtual std::shared_ptr<DatasetEntry> get(std::size_t i) override;
 
 private:
-    //std::tuple<cv::Mat, BoundingBoxList> parseGt(std::ifstream &gtFs, cv::Size imageSize);
+    cv::Mat parseGt(const BoundingBoxList& boxes, const cv::Size imageSize);
 
     bool m_extractBoundingboxes;
     bfs::path m_labelFile;
-    std::map<std::string, BoundingBoxList> m_labels;
+    std::map<std::string, ParsedEntry> m_labels;
 
     /* TODO */
     const std::map<std::string, int32_t> m_instanceDict {
-            {"traffic light car relevant", 10},
-            {"traffic light car irrelevant", 11},
-            {"traffic light pedestrian", 12},
-            {"traffic light bike", 13},
-            {"traffic light other", 14},
+            {"traffic light front relevant", 10},
+            {"traffic light front irrelevant", 11},
+            {"traffic light left", 12},
+            {"traffic light right", 13},
+            {"traffic light back", 14},
     };
 };
