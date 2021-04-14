@@ -206,6 +206,7 @@ public:
                 datasets.push_back(dataset);
             }
             if (checkAndGet<bool>("use_dtld_val", config)) {
+                createBBUtils(width, height);
                 auto dataset = std::make_shared<DTLDataset>(dtldPath, DTLDataset::Mode::Val);
                 datasets.push_back(std::make_shared<RandomDataset>(dataset));
             }

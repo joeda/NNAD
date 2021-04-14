@@ -6,7 +6,7 @@
 
 namespace {
     std::string convertToLocalPath(const bfs::path& basePath, const std::string& imgPath) {
-        std::vector<std::string> origins = {"/scr/cmtcde8u013/fs2/DTLD_final/", "/scratch/fs2/DTLD_final/"};
+        std::vector<std::string> origins = {"/scr/cmtcde8u013/fs2/DTLD_final", "/scratch/fs2/DTLD_final"};
         auto imgPathCopy = imgPath;
         for (const auto& ss : origins) {
             if (imgPath.rfind(ss, 0) == 0) {
@@ -22,7 +22,7 @@ namespace {
         if (label.size() != 6) {
             throw std::runtime_error("traffic light Label of size != 6");
         }
-        if (static_cast<char>(label[0]) == char('1')) { //facing front
+        if (label.at(0) == char('1')) { //facing front
             if (label.at(1) == char('1') || label.at(1)== char('3')) {
                 return "traffic light front relevant";
             } else {
@@ -41,6 +41,7 @@ namespace {
     }
 
     std::map<std::string, ParsedEntry> parseYaml(const bfs::path &yamlFile, const bfs::path& basePath, const int64 baseId, const std::map<std::string, int32_t>& instMap) {
+        std::cout << "Parsing " << yamlFile.string() << std::endl;
         YAML::Node labels = YAML::LoadFile(yamlFile.string());
         CHECK(labels.IsSequence(), "YAML root not a sequence");
         std::map<std::string, ParsedEntry> res;
@@ -67,13 +68,14 @@ namespace {
             }
             res.emplace(key, ParsedEntry{boxes, key});
         }
+        std::cout << "finished YAML parse" << std::endl;
         return res;
     }
 
     cv::Mat readTiff(const std::string& path) {
         cv::Mat orig = cv::imread(path, cv::IMREAD_UNCHANGED);
         cv::Mat debayer;
-        cv::cvtColor(orig, debayer, cv::COLOR_BayerRG2BGR);
+        cv::cvtColor(orig, debayer, cv::COLOR_BayerGB2BGR);
         int channels = debayer.channels();
         int nRows = debayer.rows;
         int nCols = debayer.cols * channels;
@@ -99,19 +101,22 @@ namespace {
 DTLDataset::DTLDataset(bfs::path basePath, Mode mode) {
     switch (mode) {
         case Mode::Train:
-            m_labelFile = basePath / bfs::path("DTLD_Labels") / bfs::path("DTLD_train.yaml");
+            m_labelFile = basePath / bfs::path("DTLD_Labels") / bfs::path("DTLD_train.yml");
             m_extractBoundingboxes = true;
             break;
         case Mode::Val:
-            m_labelFile = basePath / bfs::path("DTLD_Labels") / bfs::path("DTLD_test.yaml");
+            m_labelFile = basePath / bfs::path("DTLD_Labels") / bfs::path("DTLD_test.yml");
             m_extractBoundingboxes = true;
             break;
         default:
             CHECK(false, "Unknown mode!");
     }
+    std::cout << "Parsing YAML" << std::endl;
     m_labels = parseYaml(m_labelFile, basePath, getRandomId(), m_instanceDict);
+    std::cout << "making keys" << std::endl;
     std::transform(m_labels.begin(), m_labels.end(), std::back_inserter(m_keys), [](const auto& pair) {return pair.first;});
     std::sort(m_keys.begin(), m_keys.end());
+    std::cout << "finished reading" << std::endl;
 }
 
 std::shared_ptr<DatasetEntry> DTLDataset::get(std::size_t i) {
@@ -122,11 +127,19 @@ std::shared_ptr<DatasetEntry> DTLDataset::get(std::size_t i) {
     auto leftImgPath = label.imgPath;
     auto leftImg = readTiff(leftImgPath);
     CHECK(leftImg.data, "Failed to read image " + leftImgPath);
+
+    //REMOVE ME
+    if (!debugImgWritten_) {
+        cv::imwrite("/tmp/janosch_debug_img.png", leftImg);
+        debugImgWritten_ = true;
+    }
     result->input.left = toFloatMat(leftImg);
+    result->input.prevLeft = toFloatMat(leftImg);
     if (m_extractBoundingboxes) {
         auto bbDontCareAreas = parseGt(label.boxes, result->input.left.size());
         result->gt.bbDontCareAreas = bbDontCareAreas;
         result->gt.bbList = label.boxes;
+        result->gt.pixelwiseLabels = cv::Mat(result->input.left.size(), CV_32SC1, cv::Scalar(m_semanticDontCareLabel));
     }
     result->metadata.originalWidth = result->input.left.cols;
     result->metadata.originalHeight = result->input.left.rows;

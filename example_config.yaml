@@ -10,6 +10,7 @@ webvision_path: ./datasets/webvision
 bdd100k_path: ./datasets/bdd100k
 flyingchairs_path: ./datasets/flyingchairs
 sintel_path: ./datasets/sintel
+dtld_path: ./datasets/DTLD
 
 use_sintel_flow: False
 
@@ -17,7 +18,7 @@ use_sintel_flow: False
 use_cityscapes_train: True
 use_cityscapes_train_extra: False
 use_cityscapes_train_bertha: False
-use_cityscapes_val: True
+use_cityscapes_val: False
 use_cityscapes_test: False
 use_bdd100k_train_tracking: False
 use_bdd100k_seg_train: False
@@ -28,6 +29,8 @@ use_kitti_train: False
 use_kitti_val: False
 use_kitti_test: False
 use_folder_ds: False
+use_dtld_train: True
+use_dtld_val: False
 
 # Image size settings
 train_image_width: 512
@@ -71,5 +74,5 @@ num_label_classes: 19
 
 # Bounding box settings
 train_boundingboxes: True
-num_bb_classes: 15
+num_bb_classes: 14
 box_embedding_len: 32

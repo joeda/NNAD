@@ -28,6 +28,7 @@ public:
 
 private:
     cv::Mat parseGt(const BoundingBoxList& boxes, const cv::Size imageSize);
+    bool debugImgWritten_{false};
 
     bool m_extractBoundingboxes;
     bfs::path m_labelFile;
@@ -35,10 +36,10 @@ private:
 
     /* TODO */
     const std::map<std::string, int32_t> m_instanceDict {
-            {"traffic light front relevant", 10},
-            {"traffic light front irrelevant", 11},
-            {"traffic light left", 12},
-            {"traffic light right", 13},
-            {"traffic light back", 14},
+            {"traffic light front relevant", 9},
+            {"traffic light front irrelevant", 10},
+            {"traffic light left", 11},
+            {"traffic light right", 12},
+            {"traffic light back", 13},
     };
 };
