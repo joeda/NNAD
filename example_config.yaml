@@ -15,11 +15,15 @@ use_sintel_flow: False
 
 # Select active datasets
 use_cityscapes_train: True
-use_cityscapes_train_extra: True
+use_cityscapes_train_extra: False
 use_cityscapes_train_bertha: False
 use_cityscapes_val: True
 use_cityscapes_test: False
 use_bdd100k_train_tracking: False
+use_bdd100k_seg_train: False
+use_bdd100k_val_tracking: False
+use_bdd100k_seg_val: False
+use_bdd100k_seg_test: False
 use_kitti_train: False
 use_kitti_val: False
 use_kitti_test: False
@@ -37,13 +41,14 @@ pretrain:
   lr_steps: [10000000]
   lr_values: [1.0e-4]
   num_classes: 1000
-  batch_size_per_gpu: 8
+  batch_size_per_gpu: 4
 
 # Single frame settings
 single_frame:
   lr_steps: [1500000, 1750000]
   lr_values: [1.0e-4, 1.0e-5]
-  batch_size_per_gpu: 4
+  freeze_bn_step: 1450000
+  batch_size_per_gpu: 2
 
 # Multi frame settings
 multi_frame:
@@ -66,5 +71,5 @@ num_label_classes: 19
 
 # Bounding box settings
 train_boundingboxes: True
-num_bb_classes: 10
+num_bb_classes: 15
 box_embedding_len: 32
