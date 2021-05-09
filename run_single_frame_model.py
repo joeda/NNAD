@@ -48,7 +48,7 @@ bb_eval = BoundingBoxEvaluator(config['num_bb_classes'])
 saved_model_dir = os.path.join(config['state_dir'], 'saved_model')
 model = tf.saved_model.load(saved_model_dir)
 infer_fn = model.signatures['infer']
-
+print("Loaded model from {}".format(os.path.join(config['state_dir'], 'saved_model')))
 if config['train_boundingboxes']:
     bbutils = BBUtils(config['eval_image_width'], config['eval_image_height'])
 
@@ -88,7 +88,7 @@ while True:
         write_boxes_txt(boxes, inp['left'], metadata, out_dir)
         write_boxes_json(boxes, inp['left'], metadata, out_dir)
         write_debug_boundingbox_img(boxes, inp['left'], metadata, out_dir)
-
+        print("Wrote image")
     imgs += 1
 
 print('Average time per image: %3f' % (duration / (imgs - 1)))

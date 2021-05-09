@@ -91,15 +91,21 @@ class Infer(tf.Module):
         return self.inferHeads(current_feature_map)
 
 # Create model
+print("Creating model...", end="")
 infer = Infer(config)
+print("done.")
 
 # Load the latest checkpoint
+print("Looking for checkpoints in {} ...".format(os.path.join(config['state_dir'], 'checkpoints')), end="")
 checkpoint = tf.train.Checkpoint(backbone=infer.backbone, fpn1=infer.fpn1, fpn2=infer.fpn2, heads=infer.heads)
 checkpoint_manager = tf.train.CheckpointManager(checkpoint, os.path.join(config['state_dir'], 'checkpoints'), 25)
 checkpoint.restore(checkpoint_manager.latest_checkpoint)
+print("Loaded {}".format(checkpoint_manager.latest_checkpoint))
 
 # Save the trained model
+print("Writing model to {} ...".format(os.path.join(config['state_dir'], 'saved_model')), end="", flush=True)
 signature_dict = {'infer': infer.infer, 'inferBackbone': infer.inferBackbone, 'inferHeads': infer.inferHeads}
 saved_model_dir = os.path.join(config['state_dir'], 'saved_model')
 clean_directory(saved_model_dir)
 tf.saved_model.save(infer, saved_model_dir, signature_dict)
+print("done.")
