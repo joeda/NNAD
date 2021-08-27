@@ -42,6 +42,8 @@ from helpers.configreader import *
 # Argument handling
 config, config_path = get_config()
 
+print("Loaded config")
+
 # Random seed
 random.seed()
 
@@ -127,11 +129,13 @@ def single_val_step():
     tf.summary.scalar('summed_val_losses', summed_losses, tf.cast(global_step, tf.int64))
 
 
+print("Net created")
 # Load checkpoints
 checkpoint = tf.train.Checkpoint(backbone=backbone, fpn1=fpn1, fpn2=fpn2, heads=heads, label_loss=label_loss, box_loss=box_loss,
                                  embedding_loss=embedding_loss, optimizer=opt, global_single_step=global_step)
 checkpoint_manager = tf.train.CheckpointManager(checkpoint, os.path.join(config['state_dir'], 'checkpoints'), 25)
 checkpoint_status = checkpoint.restore(checkpoint_manager.latest_checkpoint)
+print("Checkpoints from {}".format(os.path.join(config['state_dir'], 'checkpoints')))
 
 # Training loop
 step = global_step.numpy()

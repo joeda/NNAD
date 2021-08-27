@@ -20,6 +20,8 @@ import sys
 sys.path.append('..')
 
 import numpy as np
+import os
+import csv
 
 class BoundingBoxEvaluator(object):
     def __init__(self, num_classes):
@@ -27,6 +29,7 @@ class BoundingBoxEvaluator(object):
         self.fp = [0 for i in range(num_classes)]
         self.tp = [0 for i in range(num_classes)]
         self.fn = [0 for i in range(num_classes)]
+        self.confusion = np.zeros((num_classes, num_classes), dtype=np.uint64)
 
     def _iou(self, box1, boxes2):
         b1_x1, b1_y1, b1_x2, b1_y2 = np.split(box1, 4, axis=0)
@@ -46,6 +49,40 @@ class BoundingBoxEvaluator(object):
         iou = np.divide(inter_area, union_area)
         assert np.all(np.isfinite(iou))
         return iou
+
+    def add_confusion(self, gt_boxes, detection_list):
+        min_width = 20
+        min_height = 20
+
+        gt_boxes = gt_boxes[0, :, :]
+
+        detections = []
+        for detection in detection_list:
+            width = detection.box.x2 - detection.box.x1
+            height = detection.box.y2 - detection.box.y1
+            if width > min_width and height > min_height:
+                detections += [[detection.box.x1, detection.box.y1, detection.box.x2, detection.box.y2]]
+        detections = np.array(detections)
+        gt_boxes_cls = gt_boxes[:, 0]
+        gt_boxes_w = gt_boxes[:, 3] - gt_boxes[:, 1]
+        gt_boxes_h = gt_boxes[:, 4] - gt_boxes[:, 2]
+        masked_gt_boxes = gt_boxes[np.logical_and(gt_boxes_w > min_width, gt_boxes_h > min_height)]
+        #masked_gt_boxes = masked_gt_boxes[:, 1:]
+        if masked_gt_boxes[:, 1:].size == 0 or len(detections) == 0:
+            return
+
+        ious = np.array([self._iou(d, masked_gt_boxes[:, 1:]) for d in detections])
+        for cnt in range(len(detections)):
+            if ious.size == 0:
+                break
+            am = np.unravel_index(np.argmax(ious, axis=None), ious.shape)
+            if ious[am] <= 0.5:
+                break
+            det_cls = detection_list[am[0]].box.cls
+            gt_cls = masked_gt_boxes[am[1], 0]
+            np.delete(ious, am[0], 0)
+            np.delete(ious, am[1], 1)
+            self.confusion[gt_cls, det_cls] += 1
 
     def add(self, gt_boxes, detection_list):
         # Ignore boxes that are too small
@@ -102,3 +139,12 @@ class BoundingBoxEvaluator(object):
             precision = self.tp[cls] / (self.tp[cls] + self.fp[cls]) if (self.tp[cls] + self.fp[cls]) > 0 else -1.0
             recall = self.tp[cls] / (self.tp[cls] + self.fn[cls]) if (self.tp[cls] + self.fn[cls]) > 0 else -1.0
             print('Class %d - Precision@0.5IoU: %f, Recall@0.5IoU: %f' % (cls, precision, recall))
+
+    def dump(self, path):
+        with open(os.path.join(path, "fp.txt"), "w") as f:
+            fieldnames = ['fp', 'fn', "tp"]
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for i in range(self.num_classes):
+                writer.writerow({"fp": self.fp[i], "fn": self.fn[i], "tp": self.tp[i]})
+        np.save(os.path.join(path, "confusion.npy"), self.confusion)
