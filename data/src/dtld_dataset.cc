@@ -141,23 +141,24 @@ std::shared_ptr<DatasetEntry> DTLDataset::get(std::size_t i) {
         result->gt.bbList = label.boxes;
         result->gt.pixelwiseLabels = cv::Mat(result->input.left.size(), CV_32SC1, cv::Scalar(m_semanticDontCareLabel));
     }
+    writer_.writeMask(i, result->gt.bbDontCareAreas);
+    writer_.writePixelwise(i, result->gt.pixelwiseLabels);
     result->metadata.originalWidth = result->input.left.cols;
     result->metadata.originalHeight = result->input.left.rows;
     result->metadata.canFlip = true;
-    result->metadata.horizontalFov = 50.0;
+    result->metadata.horizontalFov = 90.0;
     result->metadata.key = key;
     return result;
 }
 
 cv::Mat DTLDataset::parseGt(const BoundingBoxList& boxes, const cv::Size imageSize) {
-    cv::Mat bbDontCareImg(imageSize, CV_32SC1, cv::Scalar(m_boundingBoxValidLabel));
+    cv::Mat bbDontCareImg(imageSize, CV_32SC1, cv::Scalar(m_boundingBoxDontCareLabel));
     for (const auto& bb : boxes.boxes) {
         if (std::find_if(m_instanceDict.begin(), m_instanceDict.end(), [&bb](const auto& mo) {return mo.second == bb.cls; }) != m_instanceDict.end()) {
             /* Draw don't care image for bounding boxes. */
             cv::rectangle(bbDontCareImg, cv::Rect(bb.x1, bb.y1, bb.x2 - bb.x1, bb.y2 - bb.y1),
-                          cv::Scalar(m_boundingBoxDontCareLabel), -1);
+                          cv::Scalar(m_boundingBoxValidLabel), -1);
         } else {
-
         }
     }
 

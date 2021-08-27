@@ -20,6 +20,26 @@ import tensorflow as tf
 from .losses import *
 from .WeightKendall import *
 
+import numpy as np
+import uuid
+from pathlib import Path
+import os
+
+def img_summary(var, name, step):
+    tf.print("var")
+    tf.print(var)
+    tf.print(tf.rank(var))
+    if tf.rank(var) == 4:
+        pass
+        #tf.summary.image(name, var, step)
+    else:
+        tf.print("Variable " + name + " has rank ")
+
+def ensure_dir(p):
+    if os.path.exists(p) and not os.path.isdir(p):
+        raise FileExistsError(p + " is not a directory and exists")
+    Path(p).mkdir(exist_ok=True, parents=True)
+
 class BoxLoss(tf.keras.Model):
     def __init__(self, name, config, box_delta_regression=False):
         super().__init__(name=name)
@@ -34,7 +54,12 @@ class BoxLoss(tf.keras.Model):
             self.weight_delta = WeightKendall('weight_delta')
         self.box_delta_regression = box_delta_regression
 
-    def call(self, inputs, step):
+        self.cnt = 0
+
+    def call(self, inputs, step, actual_step=None):
+        prefix = str(uuid.uuid4().hex)
+        write_dir = "/tmp/000_{}_{}".format(prefix, actual_step)
+        ensure_dir(write_dir)
         results, ground_truth = inputs
 
         targets_bb = results['bb_targets_offset']
@@ -43,6 +68,14 @@ class BoxLoss(tf.keras.Model):
         gt_targets_bb = ground_truth['bb_targets_offset']
         gt_targets_cls = ground_truth['bb_targets_cls']
         gt_targets_obj = ground_truth['bb_targets_objectness']
+        #tf.print("shape")
+        #tf.print(tf.shape(gt_targets_obj))
+        #tf.print(tf.shape(gt_targets_cls))
+        #tf.print(tf.shape(gt_targets_bb))
+
+        #tf.print(gt_targets_bb, output_stream="file://" + os.path.join(write_dir, "gt_targets_bb"), summarize=-1)
+        #tf.print(gt_targets_obj, output_stream="file://" + os.path.join(write_dir, "gt_targets_obj"), summarize=-1)
+        #tf.print(gt_targets_cls, output_stream="file://" + os.path.join(write_dir, "gt_targets_cls"), summarize=-1)
 
         targets_bb = tf.reshape(targets_bb, [-1, 4])
         targets_cls = tf.reshape(targets_cls, [-1, self.num_bb_classes])
@@ -50,19 +83,43 @@ class BoxLoss(tf.keras.Model):
         gt_targets_bb = tf.reshape(gt_targets_bb, [-1, 4])
         gt_targets_cls = tf.reshape(gt_targets_cls, [-1])
         gt_targets_obj = tf.reshape(gt_targets_obj, [-1])
+        #np.save(np.array(gt_targets_bb), "/tmp/aa_{:06d}/gt_targets_bb".format(self.cnt))
+        #tf.io.write_file("/tmp/0000_{}/gt_targets_obj".format(prefix), "gt_targets_bb")
+        #with open(os.path.join(write_dir, "gt_targets_bb"), "w") as f:
+        #tf.print("printing to {}".format(os.path.join(write_dir, "gt_targets_bb")))
+        #tf.print(gt_targets_bb, output_stream="file://" + os.path.join(write_dir, "gt_targets_bb"))
+        #tf.print("gt targets bb nonzero")
+        #tf.print(tf.math.count_nonzero(gt_targets_bb))
+        #tf.print("gt targets obj nonzero")
+        #tf.print(tf.math.count_nonzero(gt_targets_obj))
+
+        #tf.print("gt targets bb")
+        #tf.print(gt_targets_bb)
+        #tf.print("gt targets obj")
+        #tf.print(gt_targets_obj)
+        #tf.print("gt targets cls")
+        #tf.print(gt_targets_cls)
 
         shape = tf.shape(targets_bb)
         num_anchors = tf.cast(shape[0], tf.float32)
 
         # -1 is the ignore label for boxes
         mask_obj = tf.not_equal(gt_targets_obj, tf.constant([-1]))
+        #tf.io.write_file("/tmp/aa_{:06d}/mask_obj".format(self.cnt), mask_obj)
         masked_targets_obj = tf.boolean_mask(targets_obj, mask_obj)
         masked_gt_targets_obj = tf.boolean_mask(gt_targets_obj, mask_obj)
+        #tf.io.write_file("/tmp/aa_{:06d}/masked_gt_targets_obj".format(self.cnt), masked_gt_targets_obj)
+
 
         # We do not care for bounding box regression or classification of targets that do not correspond to an object
         mask_bb = tf.equal(gt_targets_obj, tf.constant([1]))
         masked_targets_bb = tf.boolean_mask(targets_bb, mask_bb)
+        #tf.print("masked targets bb")
+        #tf.print(masked_targets_bb)
         masked_gt_targets_bb = tf.boolean_mask(gt_targets_bb, mask_bb)
+        #tf.print("masked gt targets bb")
+        #tf.print(masked_gt_targets_bb)
+        #tf.io.write_file("/tmp/aa_{:06d}/masked_gt_targets_bb".format(self.cnt), masked_gt_targets_bb)
         masked_targets_cls = tf.boolean_mask(targets_cls, mask_bb)
         masked_gt_targets_cls = tf.boolean_mask(gt_targets_cls, mask_bb)
 
@@ -74,9 +131,25 @@ class BoxLoss(tf.keras.Model):
         #cls_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=masked_targets_cls,
         #                                                          labels=masked_gt_targets_cls)
         bb_loss = smooth_l1_loss(logits=masked_targets_bb, labels=masked_gt_targets_bb, delta=0.1)
+        #tf.print("obj loss")
+        #tf.print(obj_loss)
+        #tf.print("bb loss")
+        #tf.print(bb_loss)
         obj_loss = tf.reduce_sum(obj_loss) / num_anchors
         cls_loss = tf.reduce_sum(cls_loss) / num_anchors
         bb_loss = tf.reduce_sum(bb_loss) / num_anchors
+
+        tf.summary.scalar('bb_cls_loss_before_scale', cls_loss, step)
+        tf.summary.scalar('bb_obj_loss_before_scale', obj_loss, step)
+        tf.summary.scalar('bb_box_loss_before_scale', bb_loss, step)
+
+        tf.summary.scalar('masked_gt_targets_cls', tf.size(masked_gt_targets_cls), step)
+        tf.summary.scalar('masked_targets_cls', tf.size(masked_targets_cls), step)
+        tf.summary.scalar('masked_gt_targets_bb', tf.size(masked_gt_targets_bb), step)
+        tf.summary.scalar('masked_targets_bb', tf.size(masked_targets_bb), step)
+        tf.summary.scalar('masked_gt_targets_obj', tf.size(masked_gt_targets_obj), step)
+        tf.summary.scalar('masked_targets_obj', tf.size(masked_targets_obj), step)
+
 
         # Apply some sensible scaling before loss weighting
         obj_loss *= 5000.0
@@ -90,6 +163,13 @@ class BoxLoss(tf.keras.Model):
         tf.summary.scalar('bb_cls_loss', cls_loss, step)
         tf.summary.scalar('bb_obj_loss', obj_loss, step)
         tf.summary.scalar('bb_box_loss', bb_loss, step)
+
+        #img_summary(gt_targets_obj, "gt_targets_obj", step)
+        #tf.summary.image("gt_targets_obj", gt_targets_obj, step)
+        #tf.summary.image("gt_targets_bb", gt_targets_bb, step)
+        #tf.summary.image("gt_targets_cls", gt_targets_cls, step)
+        #tf.summary.image("mask_obj", mask_obj, step)
+        #tf.summary.image("masked_gt_targets_obj", masked_gt_targets_obj, step)
 
         losses = [cls_loss, obj_loss, bb_loss]
 
@@ -120,4 +200,5 @@ class BoxLoss(tf.keras.Model):
             tf.summary.scalar('bb_delta_loss', delta_loss, step)
             losses += [delta_loss]
 
+        self.cnt += 1
         return losses

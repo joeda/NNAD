@@ -19,6 +19,7 @@
 #pragma once
 
 #include "file_dataset.hh"
+#include "debug_writer.hh"
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -52,6 +53,8 @@ private:
     bool m_extractBoundingboxes;
     bool m_hasSequence;
     double m_fov;
+
+    DebugWriter writer_{"cityscapes"};
 
     const std::map<std::string, int32_t> m_labelDict {
         {"road", 0},

@@ -2,6 +2,7 @@
 
 
 #include "file_dataset.hh"
+#include "debug_writer.hh"
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -29,10 +30,12 @@ public:
 private:
     cv::Mat parseGt(const BoundingBoxList& boxes, const cv::Size imageSize);
     bool debugImgWritten_{false};
+    DebugWriter writer_{"dtld"};
 
     bool m_extractBoundingboxes;
     bfs::path m_labelFile;
     std::map<std::string, ParsedEntry> m_labels;
+
 
     /* TODO */
     const std::map<std::string, int32_t> m_instanceDict {

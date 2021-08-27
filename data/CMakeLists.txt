@@ -27,7 +27,7 @@ add_library(dataset
     src/dataset.cc
     src/augment.cc
     src/bbutils.cc
-    src/utils.cc src/dtld_dataset.cc src/dtld_dataset.hh)
+    src/utils.cc src/dtld_dataset.cc src/dtld_dataset.hh src/debug_writer.hh)
 target_link_libraries(dataset ${JSONCPP_LIBRARIES} ${YAML_CPP_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBRARIES} Threads::Threads)
 
 find_package(Tensorflow REQUIRED)

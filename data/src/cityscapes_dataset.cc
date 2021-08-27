@@ -18,66 +18,66 @@
 
 #include <sstream>
 #include <iomanip>
+#include <filesystem>
 
 #include "utils.hh"
 
 #include "cityscapes_dataset.hh"
 
-CityscapesDataset::CityscapesDataset(bfs::path basePath, Mode mode)
-{
+CityscapesDataset::CityscapesDataset(bfs::path basePath, Mode mode) {
     switch (mode) {
-    case Mode::Train:
-        m_groundTruthPath = basePath / bfs::path("gtFine") / bfs::path("train");
-        m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train");
-        m_prevLeftImgPath = basePath / bfs::path("leftImg8bit_sequence") / bfs::path("train");
-        m_groundTruthSubstring = std::string("_gtFine_polygons.json");
-        m_leftImgSubstring = std::string("_leftImg8bit.png");
-        m_extractBoundingboxes = true;
-        m_hasSequence = true;
-        m_fov = 50.0;
-        break;
-    case Mode::TrainExtra:
-        m_groundTruthPath = basePath / bfs::path("gtCoarse") / bfs::path("train_extra");
-        m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train_extra");
-        m_prevLeftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train_extra");
-        m_groundTruthSubstring = std::string("_gtCoarse_polygons.json");
-        m_leftImgSubstring = std::string("_leftImg8bit.png");
-        m_extractBoundingboxes = false;
-        m_hasSequence = false;
-        m_fov = 50.0;
-        break;
-    case Mode::TrainBertha:
-        m_groundTruthPath = basePath / bfs::path("gtFine") / bfs::path("train_bertha");
-        m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train_bertha");
-        m_prevLeftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train_bertha");
-        m_groundTruthSubstring = std::string("_gtFine_polygons.json");
-        m_leftImgSubstring = std::string("_leftImg8bit.png");
-        m_extractBoundingboxes = true;
-        m_hasSequence = false;
-        m_fov = 120.0;
-        break;
-    case Mode::Test:
-        m_groundTruthPath = basePath / bfs::path("gtFine") / bfs::path("test");
-        m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("test");
-        m_prevLeftImgPath = basePath / bfs::path("leftImg8bit_sequence") / bfs::path("test");
-        m_groundTruthSubstring = std::string("_gtFine_polygons.json");
-        m_leftImgSubstring = std::string("_leftImg8bit.png");
-        m_extractBoundingboxes = false;
-        m_hasSequence = true;
-        m_fov = 50.0;
-        break;
-    case Mode::Val:
-        m_groundTruthPath = basePath / bfs::path("gtFine") / bfs::path("val");
-        m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("val");
-        m_prevLeftImgPath = basePath / bfs::path("leftImg8bit_sequence") / bfs::path("val");
-        m_groundTruthSubstring = std::string("_gtFine_polygons.json");
-        m_leftImgSubstring = std::string("_leftImg8bit.png");
-        m_extractBoundingboxes = true;
-        m_hasSequence = true;
-        m_fov = 50.0;
-        break;
-    default:
-        CHECK(false, "Unknown mode!");
+        case Mode::Train:
+            m_groundTruthPath = basePath / bfs::path("gtFine") / bfs::path("train");
+            m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train");
+            m_prevLeftImgPath = basePath / bfs::path("leftImg8bit_sequence") / bfs::path("train");
+            m_groundTruthSubstring = std::string("_gtFine_polygons.json");
+            m_leftImgSubstring = std::string("_leftImg8bit.png");
+            m_extractBoundingboxes = true;
+            m_hasSequence = true;
+            m_fov = 50.0;
+            break;
+        case Mode::TrainExtra:
+            m_groundTruthPath = basePath / bfs::path("gtCoarse") / bfs::path("train_extra");
+            m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train_extra");
+            m_prevLeftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train_extra");
+            m_groundTruthSubstring = std::string("_gtCoarse_polygons.json");
+            m_leftImgSubstring = std::string("_leftImg8bit.png");
+            m_extractBoundingboxes = false;
+            m_hasSequence = false;
+            m_fov = 50.0;
+            break;
+        case Mode::TrainBertha:
+            m_groundTruthPath = basePath / bfs::path("gtFine") / bfs::path("train_bertha");
+            m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train_bertha");
+            m_prevLeftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train_bertha");
+            m_groundTruthSubstring = std::string("_gtFine_polygons.json");
+            m_leftImgSubstring = std::string("_leftImg8bit.png");
+            m_extractBoundingboxes = true;
+            m_hasSequence = false;
+            m_fov = 120.0;
+            break;
+        case Mode::Test:
+            m_groundTruthPath = basePath / bfs::path("gtFine") / bfs::path("test");
+            m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("test");
+            m_prevLeftImgPath = basePath / bfs::path("leftImg8bit_sequence") / bfs::path("test");
+            m_groundTruthSubstring = std::string("_gtFine_polygons.json");
+            m_leftImgSubstring = std::string("_leftImg8bit.png");
+            m_extractBoundingboxes = false;
+            m_hasSequence = true;
+            m_fov = 50.0;
+            break;
+        case Mode::Val:
+            m_groundTruthPath = basePath / bfs::path("gtFine") / bfs::path("val");
+            m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("val");
+            m_prevLeftImgPath = basePath / bfs::path("leftImg8bit_sequence") / bfs::path("val");
+            m_groundTruthSubstring = std::string("_gtFine_polygons.json");
+            m_leftImgSubstring = std::string("_leftImg8bit.png");
+            m_extractBoundingboxes = true;
+            m_hasSequence = true;
+            m_fov = 50.0;
+            break;
+        default:
+            CHECK(false, "Unknown mode!");
     }
 
     for (auto &entry : bfs::recursive_directory_iterator(m_groundTruthPath)) {
@@ -91,8 +91,7 @@ CityscapesDataset::CityscapesDataset(bfs::path basePath, Mode mode)
     std::sort(m_keys.begin(), m_keys.end());
 }
 
-std::string CityscapesDataset::keyToPrev(std::string key) const
-{
+std::string CityscapesDataset::keyToPrev(std::string key) const {
     if (!m_hasSequence) {
         return key;
     }
@@ -114,8 +113,7 @@ std::string CityscapesDataset::keyToPrev(std::string key) const
     return result.str();
 }
 
-std::shared_ptr<DatasetEntry> CityscapesDataset::get(std::size_t i)
-{
+std::shared_ptr <DatasetEntry> CityscapesDataset::get(std::size_t i) {
     CHECK(i < m_keys.size(), "Index out of range");
     auto key = m_keys[i];
     auto result = std::make_shared<DatasetEntry>();
@@ -130,7 +128,9 @@ std::shared_ptr<DatasetEntry> CityscapesDataset::get(std::size_t i)
     auto jsonPath = m_groundTruthPath / bfs::path(key + m_groundTruthSubstring);
     std::ifstream jsonFs(jsonPath.string());
     std::string jsonStr = std::string(std::istreambuf_iterator<char>(jsonFs), std::istreambuf_iterator<char>());
-    auto [pixelwiseLabels, bbDontCareAreas, bbList] = parseJson(jsonStr, result->input.left.size());
+    auto[pixelwiseLabels, bbDontCareAreas, bbList] = parseJson(jsonStr, result->input.left.size());
+    writer_.writeMask(i, bbDontCareAreas);
+    writer_.writePixelwise(i, pixelwiseLabels);
     result->gt.pixelwiseLabels = pixelwiseLabels;
     result->gt.bbDontCareAreas = bbDontCareAreas;
     if (m_extractBoundingboxes) {
@@ -144,8 +144,7 @@ std::shared_ptr<DatasetEntry> CityscapesDataset::get(std::size_t i)
     return result;
 }
 
-std::tuple<std::string, bool> CityscapesDataset::removeGroup(std::string label) const
-{
+std::tuple<std::string, bool> CityscapesDataset::removeGroup(std::string label) const {
     bool isGroup = boost::ends_with(label, "group");
     if (isGroup) {
         label.erase(label.end() - std::string("group").length(), label.end());
@@ -153,9 +152,8 @@ std::tuple<std::string, bool> CityscapesDataset::removeGroup(std::string label) 
     return {label, isGroup};
 }
 
-std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const std::string jsonStr,
-                                                                           cv::Size imageSize)
-{
+std::tuple <cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const std::string jsonStr,
+                                                                            cv::Size imageSize) {
     Json::Value root;
     Json::Reader reader;
     bool success = reader.parse(jsonStr, root);
@@ -173,8 +171,8 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
         if (annotation.get("deleted", 0).asInt() == 1) {
             continue;
         }
-        auto [cls, isGroup] = removeGroup(annotation["label"].asString());
-        std::vector<cv::Point> points;
+        auto[cls, isGroup] = removeGroup(annotation["label"].asString());
+        std::vector <cv::Point> points;
         int xMin = std::numeric_limits<int>::max();
         int yMin = std::numeric_limits<int>::max();
         int xMax = std::numeric_limits<int>::lowest();
@@ -189,7 +187,7 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
             points.push_back(cv::Point(x, y));
         }
         int numPoints = points.size();
-        const cv::Point* ppoints = points.data();
+        const cv::Point *ppoints = points.data();
         CHECK(numPoints >= 3, "The object must contain at least 3 points");
 
         if (m_labelDict.count(cls) > 0) {
@@ -208,13 +206,17 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
         /*traffic light specializations */
         if (cls == "traffic light") {
             if (annotation.isMember("attributes")) {
-                if (annotation["attributes"].isMember("relevant") && annotation["attributes"]["relevant"].asString() == "yes") {
+                if (annotation["attributes"].isMember("relevant") &&
+                    annotation["attributes"]["relevant"].asString() == "yes") {
                     cls = "traffic light car relevant";
-                } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "car") {
+                } else if (annotation["attributes"].isMember("type") &&
+                           annotation["attributes"]["type"].asString() == "car") {
                     cls = "traffic light car irrelevant";
-                } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "pedestrian") {
+                } else if (annotation["attributes"].isMember("type") &&
+                           annotation["attributes"]["type"].asString() == "pedestrian") {
                     cls = "traffic light pedestrian";
-                } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "bike") {
+                } else if (annotation["attributes"].isMember("type") &&
+                           annotation["attributes"]["type"].asString() == "bike") {
                     cls = "traffic light bike";
                 } else {
                     cls = "traffic light other";

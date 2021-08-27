@@ -84,6 +84,8 @@ while True:
         boxes = bbutils.bbListFromTargetsBuffer(bb_targets_objectness, bb_targets_cls, bb_targets_offset,
                                                 np.array([]), bb_targets_embedding, 0.5)
         bb_eval.add(gt['bb_list'].numpy(), boxes)
+        bb_eval.add_confusion(gt['bb_list'].numpy(), boxes)
+        bb_eval.dump("/tmp")
 
         write_boxes_txt(boxes, inp['left'], metadata, out_dir)
         write_boxes_json(boxes, inp['left'], metadata, out_dir)

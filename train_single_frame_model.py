@@ -76,9 +76,11 @@ embedding_loss_val = EmbeddingLoss('embedding_loss_val', config)
 
 # Define a training step function for single images
 @tf.function
-def single_train_step():
+def single_train_step(my_step=None):
     images, ground_truth, metadata = ds.get_batched_data(config['single_frame']['batch_size_per_gpu'])
     train_bn = global_step < config['single_frame']['freeze_bn_step']
+
+    tf.summary.image("input", images["left"], tf.cast(global_step, tf.int64))
 
     with tf.GradientTape(persistent=True) as tape:
         feature_map = backbone(images['left'], train_bn)
@@ -90,7 +92,8 @@ def single_train_step():
         if config['train_labels']:
             losses += [label_loss([results, ground_truth], tf.cast(global_step, tf.int64))]
         if config['train_boundingboxes']:
-            losses += box_loss([results, ground_truth], tf.cast(global_step, tf.int64))
+            losses += box_loss([results, ground_truth], tf.cast(global_step, tf.int64), my_step)
+
             losses += [embedding_loss([results, ground_truth], tf.cast(global_step, tf.int64))]
 
         ## Sum up all losses
@@ -121,7 +124,7 @@ def single_val_step():
     if config['train_labels']:
         losses += [label_loss_val([results, ground_truth], tf.cast(global_step, tf.int64))]
     if config['train_boundingboxes']:
-        losses += box_loss_val([results, ground_truth], tf.cast(global_step, tf.int64))
+        losses += box_loss_val([results, ground_truth], tf.cast(global_step, tf.int64), None)
         losses += [embedding_loss_val([results, ground_truth], tf.cast(global_step, tf.int64))]
     summed_losses = tf.add_n(losses)
     tf.summary.scalar('summed_val_losses', summed_losses, tf.cast(global_step, tf.int64))
@@ -144,7 +147,9 @@ while step < max_train_steps:
     # Run training step
     with train_summary_writer.as_default():
         start_time = time.time()
-        total_loss = single_train_step()
+        my_step = global_step.numpy()
+        print(my_step)
+        total_loss = single_train_step(my_step)
         duration = time.time() - start_time
 
     assert not np.isnan(total_loss.numpy()), 'Model diverged with loss = NaN'

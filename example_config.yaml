@@ -18,7 +18,7 @@ use_sintel_flow: False
 use_cityscapes_train: True
 use_cityscapes_train_extra: False
 use_cityscapes_train_bertha: False
-use_cityscapes_val: False
+use_cityscapes_val: True
 use_cityscapes_test: False
 use_bdd100k_train_tracking: False
 use_bdd100k_seg_train: False
@@ -30,7 +30,7 @@ use_kitti_val: False
 use_kitti_test: False
 use_folder_ds: False
 use_dtld_train: True
-use_dtld_val: False
+use_dtld_val: True
 
 # Image size settings
 train_image_width: 512
