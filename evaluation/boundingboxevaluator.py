@@ -30,6 +30,7 @@ class BoundingBoxEvaluator(object):
         self.tp = [0 for i in range(num_classes)]
         self.fn = [0 for i in range(num_classes)]
         self.confusion = np.zeros((num_classes, num_classes), dtype=np.uint64)
+        self.width_cnt = np.zeros(2000, dtype=np.uint64)
 
     def _iou(self, box1, boxes2):
         b1_x1, b1_y1, b1_x2, b1_y2 = np.split(box1, 4, axis=0)
@@ -51,8 +52,10 @@ class BoundingBoxEvaluator(object):
         return iou
 
     def add_confusion(self, gt_boxes, detection_list):
-        min_width = 20
-        min_height = 20
+        min_width = 10
+        min_height = 10
+        max_height = 100
+        max_width = 100
 
         gt_boxes = gt_boxes[0, :, :]
 
@@ -86,8 +89,10 @@ class BoundingBoxEvaluator(object):
 
     def add(self, gt_boxes, detection_list):
         # Ignore boxes that are too small
-        min_width = 20
-        min_height = 20
+        min_width = 10
+        min_height = 10
+        max_height = 1000
+        max_width = 60
 
         gt_boxes = gt_boxes[0, :, :]
 
@@ -96,14 +101,23 @@ class BoundingBoxEvaluator(object):
             for detection in detection_list:
                 width = detection.box.x2 - detection.box.x1;
                 height = detection.box.y2 - detection.box.y1
-                if detection.box.cls == cls and width > min_width and height > min_height:
-                    detections += [[detection.box.x1, detection.box.y1, detection.box.x2, detection.box.y2]]
+                if cls < 10:
+                    if detection.box.cls == cls and width > min_width and height > min_height:
+                        detections += [[detection.box.x1, detection.box.y1, detection.box.x2, detection.box.y2]]
+                else:
+                    if detection.box.cls > 9 and width > min_width and height > min_height and height < max_height and width < max_width:
+                        detections += [[detection.box.x1, detection.box.y1, detection.box.x2, detection.box.y2]]
             detections = np.array(detections)
             gt_boxes_cls = gt_boxes[:, 0]
             gt_boxes_w = gt_boxes[:, 3] - gt_boxes[:, 1]
             gt_boxes_h = gt_boxes[:, 4] - gt_boxes[:, 2]
-            masked_gt_boxes = gt_boxes[np.logical_and(gt_boxes_cls == cls,
-                                                      np.logical_and(gt_boxes_w > min_width, gt_boxes_h > min_height))]
+            if cls < 10:
+                masked_gt_boxes = gt_boxes[np.logical_and(gt_boxes_cls == cls,
+                                                          np.logical_and(gt_boxes_w > min_width, gt_boxes_h > min_height))]
+            else:
+                masked_gt_boxes = gt_boxes[np.logical_and(gt_boxes_cls > 9,
+                                                          np.logical_and(gt_boxes_w > min_width,
+                                                                         gt_boxes_h > min_height))]
             masked_gt_boxes = masked_gt_boxes[:, 1:]
 
             if np.shape(masked_gt_boxes)[0] == 0:
@@ -130,7 +144,7 @@ class BoundingBoxEvaluator(object):
                     self.fp[cls] += 1
             self.fn[cls] += np.shape(unused_box_idx)[0]
 
-        for cls in range(self.num_classes):
+        for cls in range(11):
             add_cls(cls)
 
     def print_results(self):
@@ -145,6 +159,7 @@ class BoundingBoxEvaluator(object):
             fieldnames = ['fp', 'fn', "tp"]
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
-            for i in range(self.num_classes):
+            for i in range(11):
                 writer.writerow({"fp": self.fp[i], "fn": self.fn[i], "tp": self.tp[i]})
         np.save(os.path.join(path, "confusion.npy"), self.confusion)
+        np.save(os.path.join(path, "width.npy"), self.width_cnt)
