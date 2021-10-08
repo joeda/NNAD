@@ -18,6 +18,7 @@
 
 #include <sstream>
 #include <iomanip>
+#include <set>
 
 #include "utils.hh"
 
@@ -130,7 +131,7 @@ std::shared_ptr<DatasetEntry> CityscapesDataset::get(std::size_t i)
     auto jsonPath = m_groundTruthPath / bfs::path(key + m_groundTruthSubstring);
     std::ifstream jsonFs(jsonPath.string());
     std::string jsonStr = std::string(std::istreambuf_iterator<char>(jsonFs), std::istreambuf_iterator<char>());
-    auto [pixelwiseLabels, bbDontCareAreas, bbList] = parseJson(jsonStr, result->input.left.size());
+    auto [pixelwiseLabels, bbDontCareAreas, bbList] = parseJson(jsonStr, result->input.left.size(), jsonPath.string());
     result->gt.pixelwiseLabels = pixelwiseLabels;
     result->gt.bbDontCareAreas = bbDontCareAreas;
     if (m_extractBoundingboxes) {
@@ -154,7 +155,8 @@ std::tuple<std::string, bool> CityscapesDataset::removeGroup(std::string label) 
 }
 
 std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const std::string jsonStr,
-                                                                           cv::Size imageSize)
+                                                                           cv::Size imageSize,
+                                                                           const std::string path)
 {
     Json::Value root;
     Json::Reader reader;
@@ -169,10 +171,13 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
     bbList.height = imageSize.height;
 
     int64_t objectId = getRandomId();
+    std::map<std::string, std::vector<BoundingBox>> arrows;
+    std::vector<std::string> arrowTypes = {"arrow-left", "arrow-straight", "arrow-right", "arrow-straight-left", "arrow-straight-right", "arrow-left-right"};
     for (auto &annotation : root["objects"]) {
         if (annotation.get("deleted", 0).asInt() == 1) {
             continue;
         }
+
         auto [cls, isGroup] = removeGroup(annotation["label"].asString());
         std::vector<cv::Point> points;
         int xMin = std::numeric_limits<int>::max();
@@ -190,7 +195,11 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
         }
         int numPoints = points.size();
         const cv::Point* ppoints = points.data();
-        CHECK(numPoints >= 3, "The object must contain at least 3 points");
+        if (numPoints < 3) {
+            std::cerr << "n points < 3 in with class " << cls << " at " << path << std::endl;
+            continue;
+        }
+        //CHECK(numPoints >= 3, "The object must contain at least 3 points");
 
         if (m_labelDict.count(cls) > 0) {
             /* Draw label image */
@@ -206,7 +215,8 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
         }
 
         /* Generate bounding box list */
-        if (m_instanceDict.count(cls) > 0) {
+        if (m_instanceDict.count(cls) > 0 && std::find(arrowTypes.begin(), arrowTypes.end(), cls) == arrowTypes.end()) {
+
             BoundingBox boundingBox;
             boundingBox.id = objectId++;
             boundingBox.cls = m_instanceDict.at(cls);
@@ -215,8 +225,49 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
             boundingBox.y1 = yMin;
             boundingBox.y2 = yMax;
             bbList.boxes.push_back(boundingBox);
+        } else if (m_instanceDict.count(cls) > 0 && std::find(arrowTypes.begin(), arrowTypes.end(), cls) != arrowTypes.end()) {
+//            std::cout << "got item of class " << cls << std::endl;
+//            for (auto it = annotation.begin(); it != annotation.end(); ++it) {
+//                std::cout << it.key().asString() << std::endl;
+//            }
+            BoundingBox boundingBox;
+            boundingBox.id = objectId++;
+            boundingBox.cls = m_instanceDict.at(cls);
+            boundingBox.x1 = xMin;
+            boundingBox.x2 = xMax;
+            boundingBox.y1 = yMin;
+            boundingBox.y2 = yMax;
+            auto gid = annotation.get("groupId", "").asString();
+            if (gid == "") {
+                bbList.boxes.push_back(boundingBox);
+                continue;
+            } else {
+                if (arrows.find(gid) == arrows.end()) {
+                    arrows.emplace(gid, std::vector<BoundingBox>());
+                }
+                arrows[gid].push_back(boundingBox);
+            }
         }
     }
 
+    for (const auto& [gid, bboxes] : arrows) {
+        if (!bboxes.empty()) {
+            BoundingBox box = bboxes.front();
+            for (const auto& otherBox : bboxes) {
+                box.x1 = std::min(box.x1, otherBox.x1);
+                box.y1 = std::min(box.y1, otherBox.y1);
+                box.x2 = std::max(box.x2, otherBox.x2);
+                box.y2 = std::max(box.y2, otherBox.y2);
+            }
+            bbList.boxes.push_back(box);
+        }
+    }
+
+//    std::cout << "Read " << jsonStr << std::endl;
+//    for (const auto& box : bbList.boxes) {
+//        std::cout << "Class " << std::to_string(box.cls) << std::endl;
+//        std::cout << "x1: " << std::to_string(box.x1) << "\nx2: " << std::to_string(box.x2)
+//        << "\ny1: " << std::to_string(box.y1) << "\ny2: " << std::to_string(box.y2) << std::endl;
+//    }
     return {labelImg, bbDontCareImg, bbList};
 }

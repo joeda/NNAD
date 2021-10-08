@@ -42,7 +42,7 @@ public:
 private:
     std::string keyToPrev(std::string key) const;
     std::tuple<std::string, bool> removeGroup(std::string label) const;
-    std::tuple<cv::Mat, cv::Mat, BoundingBoxList> parseJson(const std::string jsonStr, cv::Size imageSize);
+    std::tuple<cv::Mat, cv::Mat, BoundingBoxList> parseJson(const std::string jsonStr, cv::Size imageSize, const std::string path);
 
     bfs::path m_groundTruthPath;
     bfs::path m_leftImgPath;
@@ -73,6 +73,24 @@ private:
         {"train", 16},
         {"motorcycle", 17},
         {"bicycle", 18},
+        {"pedestrian", 19},
+        {"dashed_line_thin", 20},
+        {"dashed_line_bold", 21},
+        {"solid_line_thin", 22},
+        {"solid_line_bold", 23},
+        {"hatched", 24},
+        {"stop", 25},
+        {"cross_walk", 26},
+        {"zig-zag", 27},
+        {"bike", 28},
+        {"arrow-left", 29},
+        {"arrow-straight", 30},
+        {"arrow-right", 31},
+        {"arrow-straight-left", 32},
+        {"arrow-straight-right", 33},
+        {"arrow-left-right", 34},
+        {"other", 35},
+        {"wait", 36},
     };
 
     const std::map<std::string, int32_t> m_instanceDict {
@@ -86,5 +104,11 @@ private:
         {"bicycle", 7},
         {"traffic light", 8},
         {"traffic sign", 9},
+        {"arrow-left", 10},
+        {"arrow-straight", 11},
+        {"arrow-right", 12},
+        {"arrow-straight-left", 13},
+        {"arrow-straight-right", 14},
+        {"arrow-left-right", 15},
     };
 };
