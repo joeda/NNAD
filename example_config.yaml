@@ -71,5 +71,6 @@ num_label_classes: 19
 
 # Bounding box settings
 train_boundingboxes: True
-num_bb_classes: 15
+num_bb_classes: 10
+num_tl_classes: 6
 box_embedding_len: 32

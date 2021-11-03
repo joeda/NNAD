@@ -85,11 +85,15 @@ private:
         {"motorcycle", 6},
         {"bicycle", 7},
         {"traffic light", 8},
-        {"traffic sign", 9},
-        {"traffic light car relevant", 10},
-        {"traffic light car irrelevant", 11},
-        {"traffic light pedestrian", 12},
-        {"traffic light bike", 13},
-        {"traffic light other", 14},
+        {"traffic sign", 9}
+    };
+
+    const std::map<std::string, int32_t> m_tlDict {
+        {"ignore", -1},
+        {"traffic light car relevant", 0},
+        {"traffic light car irrelevant", 1},
+        {"traffic light pedestrian", 2},
+        {"traffic light bike", 3},
+        {"traffic light other", 4}
     };
 };

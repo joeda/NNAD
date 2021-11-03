@@ -30,7 +30,7 @@ class Dataset(object):
         self.kwargs_ = kwargs
         self.input_keys = ['left', 'prev_left']
         self.gt_keys = ['flow', 'flow_mask', 'cls', 'pixelwise_labels',
-                        'bb_targets_objectness', 'bb_targets_cls', 'bb_targets_id', 'bb_targets_prev_id',
+                        'bb_targets_objectness', 'bb_targets_cls', 'bb_targets_tl', 'bb_targets_id', 'bb_targets_prev_id',
                         'bb_targets_offset', 'bb_targets_delta_valid', 'bb_targets_delta', 'bb_list']
         self.metadata_keys = ['key', 'original_width', 'original_height']
 
@@ -54,6 +54,7 @@ class Dataset(object):
         return inputs, gt, metadata
 
     def get_batched_data(self, batch_size):
+        print("FOO")
         with tf.device('/cpu:0'):
             inputs = {}
             gt = {}
@@ -63,6 +64,7 @@ class Dataset(object):
 
             for i in range(batch_size):
                 data = dataset_module.Dataset(id=self.id_, **self.kwargs_)
+                print(len(data))
                 idx = 0
                 for i in range(len(lists)):
                     lists[i] += [data[idx]]

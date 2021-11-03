@@ -298,9 +298,11 @@ public:
             outputEmpty(context, "flow");
             outputEmpty(context, "flow_mask");
             outputEmpty(context, "cls");
+            //outputEmpty(context, "tl");
             outputEmpty(context, "pixelwise_labels");
             outputEmpty(context, "bb_targets_objectness");
             outputEmpty(context, "bb_targets_cls");
+            outputEmpty(context, "bb_targets_tl");
             outputEmpty(context, "bb_targets_id");
             outputEmpty(context, "bb_targets_prev_id");
             outputEmpty(context, "bb_targets_offset");
@@ -318,6 +320,7 @@ public:
         outputMat<float, 2>(context, data->gt.flow, "flow");
         outputMat<int32_t, 1>(context, data->gt.flowMask, "flow_mask");
         outputInt(context, data->gt.cls, "cls");
+        //outputInt(context, data->gt.tl, "tl");
         outputMat<int32_t, 1>(context, data->gt.pixelwiseLabels, "pixelwise_labels");
         outputBBTargets(context, data->gt.bbList);
         outputString(context, data->metadata.key, "key");
@@ -348,6 +351,7 @@ private:
         int numBoxes = list.boxes.size();
         Tensor* objectnessTensor = nullptr;
         Tensor* clsTensor = nullptr;
+        Tensor* tlTensor = nullptr;
         Tensor* idTensor = nullptr;
         Tensor* prevIdTensor = nullptr;
         Tensor* offsetTensor = nullptr;
@@ -359,6 +363,8 @@ private:
         CHECK(status.ok(), "Allocation of output tensor failed");
         status = context->allocate_output("bb_targets_cls", TensorShape({numTargets, 1}), &clsTensor);
         CHECK(status.ok(), "Allocation of output tensor failed");
+        status = context->allocate_output("bb_targets_tl", TensorShape({numTargets, 1}), &tlTensor);
+        CHECK(status.ok(), "Allocation of output tensor failed");
         status = context->allocate_output("bb_targets_id", TensorShape({numTargets, 1}), &idTensor);
         CHECK(status.ok(), "Allocation of output tensor failed");
         status = context->allocate_output("bb_targets_prev_id", TensorShape({numTargets, 1}), &prevIdTensor);
@@ -369,10 +375,11 @@ private:
         CHECK(status.ok(), "Allocation of output tensor failed");
         status = context->allocate_output("bb_targets_delta", TensorShape({numTargets, 4}), &deltaTensor);
         CHECK(status.ok(), "Allocation of output tensor failed");
-        status = context->allocate_output("bb_list", TensorShape({numBoxes, 5}), &boxesTensor);
+        status = context->allocate_output("bb_list", TensorShape({numBoxes, 6}), &boxesTensor);
         CHECK(status.ok(), "Allocation of output tensor failed");
         auto *objectnessData = objectnessTensor->flat<int32_t>().data();
         auto *clsData = clsTensor->flat<int32_t>().data();
+        auto *tlData = tlTensor->flat<int32_t>().data();
         auto *idData = idTensor->flat<tensorflow::int64>().data();
         auto *prevIdData = prevIdTensor->flat<tensorflow::int64>().data();
         auto *offsetData = offsetTensor->flat<float>().data();
@@ -383,6 +390,7 @@ private:
             for (auto &target : targets) {
                 *(objectnessData++) = target.objectness;
                 *(clsData++) = target.cls;
+                *(tlData++) = target.tl;
                 *(idData++) = target.id;
                 *(offsetData++) = target.dxc;
                 *(offsetData++) = target.dyc;
@@ -402,6 +410,7 @@ private:
         }
         for (auto &box : list.boxes) {
             *(boxesData++) = box.cls;
+            *(boxesData++) = box.tl;
             *(boxesData++) = box.x1;
             *(boxesData++) = box.y1;
             *(boxesData++) = box.x2;
@@ -447,6 +456,7 @@ REGISTER_OP("Dataset")
     .Output("pixelwise_labels: int32")
     .Output("bb_targets_objectness: int32")
     .Output("bb_targets_cls: int32")
+    .Output("bb_targets_tl: int32")
     .Output("bb_targets_id: int64")
     .Output("bb_targets_prev_id: int64")
     .Output("bb_targets_offset: float32")
@@ -467,6 +477,7 @@ REGISTER_OP("Dataset")
         c->set_output(idx++, c->MakeShape({-1, -1, 1})); /* pixelwise_labels */
         c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_objectness */
         c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_cls */
+        c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_tl */
         c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_id */
         c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_prev_id */
         c->set_output(idx++, c->MakeShape({-1, 4})); /* bb_targest_offset */

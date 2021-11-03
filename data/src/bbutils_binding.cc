@@ -46,18 +46,21 @@ public:
 
     std::vector<BoundingBoxDetection> bbListFromTargetsBuffer(pybind11::buffer objectnessScoresBuffer,
                                                               pybind11::buffer objectClassBuffer,
+                                                              pybind11::buffer tlBuffer,
                                                               pybind11::buffer regressionBuffer,
                                                               pybind11::buffer deltaRegressionBuffer,
                                                               pybind11::buffer embeddingBuffer, double threshold)
     {
         pybind11::buffer_info objectnessScoresBufferInfo = objectnessScoresBuffer.request();
         pybind11::buffer_info objectClassBufferInfo = objectClassBuffer.request();
+        pybind11::buffer_info tlBufferInfo = tlBuffer.request();
         pybind11::buffer_info regressionBufferInfo = regressionBuffer.request();
         pybind11::buffer_info deltaRegressionBufferInfo = deltaRegressionBuffer.request();
         pybind11::buffer_info embeddingBufferInfo = embeddingBuffer.request();
 
         checkBufferInfo<float, 1>(objectnessScoresBufferInfo);
         checkBufferInfo<int64_t, 1>(objectClassBufferInfo);
+        checkBufferInfo<int64_t, 1>(tlBufferInfo);
         checkBufferInfo<float, 1>(regressionBufferInfo);
         checkBufferInfo<float, 1>(deltaRegressionBufferInfo);
         checkBufferInfo<float, 2>(embeddingBufferInfo);
@@ -71,6 +74,7 @@ public:
             VectorView<float> objectnessScores(static_cast<const float *>(objectnessScoresBufferInfo.ptr) + prevNum,
                                                num);
             VectorView<int64_t> objectClass(static_cast<const int64_t *>(objectClassBufferInfo.ptr) + prevNum, num);
+            VectorView<int64_t> tl(static_cast<const int64_t *>(tlBufferInfo.ptr) + prevNum, num);
             VectorView<float> regression(static_cast<const float *>(regressionBufferInfo.ptr) + 4 * prevNum, 4 * num);
 
             const float *deltaRegressionData = static_cast<const float *>(deltaRegressionBufferInfo.ptr) + 4 * prevNum;
@@ -83,7 +87,7 @@ public:
             VectorView<float> embedding(static_cast<const float *>(embeddingBufferInfo.ptr) + prevNum * embeddingLen,
                                         num * embeddingLen);
 
-            auto det = bbutils->bbListFromTargets(objectnessScores, objectClass, regression, deltaRegression, embedding,
+            auto det = bbutils->bbListFromTargets(objectnessScores, objectClass, tl, regression, deltaRegression, embedding,
                                                   embeddingLen, threshold);
             detectionList.insert(detectionList.end(), det.begin(), det.end());
             prevNum += num;
@@ -121,5 +125,6 @@ PYBIND11_MODULE(bbutils, module) {
         .def_readwrite("dyc", &BoundingBox::dyc)
         .def_readwrite("dw", &BoundingBox::dw)
         .def_readwrite("dh", &BoundingBox::dh)
-        .def_readwrite("cls", &BoundingBox::cls);
+        .def_readwrite("cls", &BoundingBox::cls)
+        .def_readwrite("tl", &BoundingBox::tl);
 }

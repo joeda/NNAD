@@ -67,12 +67,17 @@ class BoxLoss(tf.keras.Model):
 
         # We do not care for bounding box regression or classification of targets that do not correspond to an object
         mask_bb = tf.equal(gt_targets_obj, tf.constant([1]))
+        mask_tl = tf.not_equal(gt_targets_tl, tf.constant([-1]))
+        mask_tl = tf.math.logical_and(mask_bb, mask_tl)
         masked_targets_bb = tf.boolean_mask(targets_bb, mask_bb)
         masked_gt_targets_bb = tf.boolean_mask(gt_targets_bb, mask_bb)
         masked_targets_cls = tf.boolean_mask(targets_cls, mask_bb)
         masked_gt_targets_cls = tf.boolean_mask(gt_targets_cls, mask_bb)
-        masked_targets_tl = tf.boolean_mask(targets_tl, mask_bb)
-        masked_gt_targets_tl = tf.boolean_mask(gt_targets_tl, mask_bb)
+        masked_targets_tl = tf.boolean_mask(targets_tl, mask_tl)
+        masked_gt_targets_tl = tf.boolean_mask(gt_targets_tl, mask_tl)
+
+        tf.print(masked_targets_bb)
+        tf.print(masked_targets_tl)
 
         masked_gt_targets_cls = tf.stop_gradient(masked_gt_targets_cls)
         masked_gt_targets_tl = tf.stop_gradient(masked_gt_targets_tl)
@@ -86,12 +91,13 @@ class BoxLoss(tf.keras.Model):
         bb_loss = smooth_l1_loss(logits=masked_targets_bb, labels=masked_gt_targets_bb, delta=0.1)
         obj_loss = tf.reduce_sum(obj_loss) / num_anchors
         cls_loss = tf.reduce_sum(cls_loss) / num_anchors
+        tl_loss = tf.reduce_sum(tl_loss) / num_anchors
         bb_loss = tf.reduce_sum(bb_loss) / num_anchors
 
         # Apply some sensible scaling before loss weighting
         obj_loss *= 5000.0
         cls_loss *= 10000.0
-        tl_loss *= 10000.0
+        tl_loss *= 2000.0
         bb_loss *= 20000.0
 
         obj_loss = self.weight_objectness(obj_loss, step)

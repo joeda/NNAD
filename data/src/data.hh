@@ -49,6 +49,7 @@ struct BoundingBox {
 
     int64_t id;
     int32_t cls;
+    int32_t tl;
     int32_t x1;
     int32_t y1;
     int32_t x2;
@@ -111,6 +112,7 @@ struct TargetBox {
 
     /* Class */
     int32_t cls;
+    int32_t tl;
 
     /* Objectness */
     int32_t objectness;
@@ -135,6 +137,7 @@ struct TargetBoxDetection {
 
     /* Class */
     int32_t cls;
+    int32_t tl;
 
     std::vector<float> embedding;
 

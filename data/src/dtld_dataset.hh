@@ -2,6 +2,7 @@
 
 
 #include "file_dataset.hh"
+//#include "debug_writer.hh"
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -10,6 +11,11 @@
 #include <yaml-cpp/yaml.h>
 
 namespace bfs = boost::filesystem;
+
+struct ParsedEntry {
+    BoundingBoxList boxes;
+    std::string imgPath;
+};
 
 class DTLDataset : public FileDataset {
 public:
@@ -22,18 +28,21 @@ public:
     virtual std::shared_ptr<DatasetEntry> get(std::size_t i) override;
 
 private:
-    //std::tuple<cv::Mat, BoundingBoxList> parseGt(std::ifstream &gtFs, cv::Size imageSize);
+    cv::Mat parseGt(const BoundingBoxList& boxes, const cv::Size imageSize);
+    //bool debugImgWritten_{false};
+    //DebugWriter writer_{"dtld"};
 
     bool m_extractBoundingboxes;
     bfs::path m_labelFile;
-    std::map<std::string, BoundingBoxList> m_labels;
+    std::map<std::string, ParsedEntry> m_labels;
+
 
     /* TODO */
     const std::map<std::string, int32_t> m_instanceDict {
-            {"traffic light car relevant", 10},
-            {"traffic light car irrelevant", 11},
-            {"traffic light pedestrian", 12},
-            {"traffic light bike", 13},
-            {"traffic light other", 14},
+            {"traffic light front relevant", 9},
+            {"traffic light front irrelevant", 10},
+            {"traffic light left", 11},
+            {"traffic light right", 12},
+            {"traffic light back", 13},
     };
 };

@@ -206,18 +206,19 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
         }
 
         /*traffic light specializations */
+        std::string tlCls{""};
         if (cls == "traffic light") {
             if (annotation.isMember("attributes")) {
                 if (annotation["attributes"].isMember("relevant") && annotation["attributes"]["relevant"].asString() == "yes") {
-                    cls = "traffic light car relevant";
+                    tlCls = "traffic light car relevant";
                 } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "car") {
-                    cls = "traffic light car irrelevant";
+                    tlCls = "traffic light car irrelevant";
                 } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "pedestrian") {
-                    cls = "traffic light pedestrian";
+                    tlCls = "traffic light pedestrian";
                 } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "bike") {
-                    cls = "traffic light bike";
+                    tlCls = "traffic light bike";
                 } else {
-                    cls = "traffic light other";
+                    tlCls = "traffic light other";
                 }
             } else {
                 std::cout << "Traffic light without attributes" << std::endl;
@@ -230,6 +231,11 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
             BoundingBox boundingBox;
             boundingBox.id = objectId++;
             boundingBox.cls = m_instanceDict.at(cls);
+            if (tlCls.empty()) {
+                boundingBox.tl = m_tlDict.at("ignore");
+            } else {
+                boundingBox.tl = m_tlDict.at(tlCls);
+            }
             boundingBox.x1 = xMin;
             boundingBox.x2 = xMax;
             boundingBox.y1 = yMin;
