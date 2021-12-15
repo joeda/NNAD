@@ -33,6 +33,8 @@ LABEL_COLOR_LUT = np.array([(128, 64,128), (244, 35,232), ( 70, 70, 70), (102,10
 BOX_COLOR_LUT = np.array([(220, 20, 60), (255, 0, 0), ( 0, 0,142), ( 0, 0, 70), ( 0, 60,100), ( 0, 80,100), ( 0, 0,230),
                           (119, 11, 32), (250,170, 30), (220,220, 0), (220, 0, 220), (60, 220, 200), (0, 255, 0), (0, 150, 0)])
 
+TL_COLOR_LUT = np.array([(255, 166, 251), (168, 168, 168), (85, 255, 255), (255, 255, 2555), ( 255, 85, 0), ( 0,0,0)])
+
 cityscapes_label_LUT = np.array([7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33],
                                 dtype=np.uint8)
 
@@ -171,6 +173,7 @@ def write_debug_boundingbox_img(boxes, image, metadata, path):
 
     for box in boxes:
         cls = box.box.cls
+        tl = box.box.tl
         x1 = np.clip(box.box.x1, 0, inference_width - 1)
         y1 = np.clip(box.box.y1, 0, inference_height - 1)
         x2 = np.clip(box.box.x2, 0, inference_width - 1)
@@ -180,17 +183,18 @@ def write_debug_boundingbox_img(boxes, image, metadata, path):
                        [int(y2), int(x2), int(y2), int(x1)],
                        [int(y2), int(x1), int(y1), int(x1)]]:
             rr, cc = skimage.draw.line(*coords)
-            image[rr, cc, :] = BOX_COLOR_LUT[cls]
+            color = BOX_COLOR_LUT[cls] if cls != 8 else TL_COLOR_LUT[tl]
+            image[rr, cc, :] = color
             if coords[0] == coords[2]:
                 if coords[0] > 0:
-                    image[rr - 1, cc, :] = BOX_COLOR_LUT[cls]
+                    image[rr - 1, cc, :] = color
                 if coords[0] < inference_height - 1:
-                    image[rr + 1, cc, :] = BOX_COLOR_LUT[cls]
+                    image[rr + 1, cc, :] = color
             if coords[1] == coords[3]:
                 if coords[1] > 0:
-                    image[rr, cc - 1, :] = BOX_COLOR_LUT[cls]
+                    image[rr, cc - 1, :] = color
                 if coords[1] < inference_width - 1:
-                    image[rr, cc + 1, :] = BOX_COLOR_LUT[cls]
+                    image[rr, cc + 1, :] = color
     image = PIL.Image.fromarray(image.astype(np.uint8), 'RGB')
     image = image.resize((width, height), PIL.Image.BILINEAR)
     image.save(image_path)

@@ -66,20 +66,21 @@ backbone = EfficientNet('backbone', BACKBONE_ARGS)
 fpn1 = BiFPN('bifpn1', BIFPN_NUM_FEATURES, int(BIFPN_NUM_BLOCKS / 2), True)
 fpn2 = BiFPN('bifpn2', BIFPN_NUM_FEATURES, BIFPN_NUM_BLOCKS - int(BIFPN_NUM_BLOCKS / 2), False)
 heads = Heads('heads', config)
-
+print("Created backbone")
 label_loss = LabelLoss('label_loss', config)
 label_loss_val = LabelLoss('label_loss_val', config)
 box_loss = BoxLoss('box_loss', config)
 box_loss_val = BoxLoss('box_loss_val', config)
 embedding_loss = EmbeddingLoss('embedding_loss', config)
 embedding_loss_val = EmbeddingLoss('embedding_loss_val', config)
+print("Created loss terms")
 
 # Define a training step function for single images
 @tf.function
 def single_train_step():
     images, ground_truth, metadata = ds.get_batched_data(config['single_frame']['batch_size_per_gpu'])
     train_bn = global_step < config['single_frame']['freeze_bn_step']
-
+    print("Got data, starting trainig")
     with tf.GradientTape(persistent=True) as tape:
         feature_map = backbone(images['left'], train_bn)
         feature_map = fpn1(feature_map, train_bn)

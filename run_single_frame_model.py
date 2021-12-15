@@ -30,6 +30,7 @@ from helpers.configreader import *
 from helpers.helpers import *
 from helpers.writers import *
 from evaluation.boundingboxevaluator import *
+from evaluation.boundingboxevaluator_tl import *
 
 # Argument handling
 config, config_path = get_config()
@@ -43,6 +44,7 @@ clean_directory(out_dir)
 
 # Evaluators
 bb_eval = BoundingBoxEvaluator(config['num_bb_classes'])
+bb_eval_tl = BoundingBoxEvaluatorTL(config['num_bb_classes'], config['num_tl_classes'])
 
 # Load the saved model
 saved_model_dir = os.path.join(config['state_dir'], 'saved_model')
@@ -78,12 +80,14 @@ while True:
     if config['train_boundingboxes']:
         bb_targets_offset = output['bb_targets_offset'].numpy()
         bb_targets_cls = output['bb_targets_cls'].numpy()
+        bb_targets_tl = output['bb_targets_tl'].numpy()
         bb_targets_objectness = output['bb_targets_objectness'].numpy()
         bb_targets_embedding = output['bb_targets_embedding'].numpy()
 
-        boxes = bbutils.bbListFromTargetsBuffer(bb_targets_objectness, bb_targets_cls, bb_targets_offset,
+        boxes = bbutils.bbListFromTargetsBuffer(bb_targets_objectness, bb_targets_cls, bb_targets_tl, bb_targets_offset,
                                                 np.array([]), bb_targets_embedding, 0.5)
         bb_eval.add(gt['bb_list'].numpy(), boxes)
+        bb_eval_tl.add(gt['bb_list'].numpy(), boxes)
 
         write_boxes_txt(boxes, inp['left'], metadata, out_dir)
         write_boxes_json(boxes, inp['left'], metadata, out_dir)
@@ -93,3 +97,4 @@ while True:
 
 print('Average time per image: %3f' % (duration / (imgs - 1)))
 bb_eval.print_results()
+bb_eval_tl.print_results()

@@ -73,12 +73,16 @@ class Infer(tf.Module):
             bb_targets_cls = tf.reshape(results['bb_targets_cls'], [-1, self.config['num_bb_classes']])
             bb_targets_cls = tf.argmax(bb_targets_cls, -1)
             bb_targets_cls = tf.reshape(bb_targets_cls, [-1])
+            bb_targets_tl = tf.reshape(results['bb_targets_tl'], [-1, self.config['num_tl_classes']])
+            bb_targets_tl = tf.argmax(bb_targets_tl, -1)
+            bb_targets_tl = tf.reshape(bb_targets_tl, [-1])
             bb_targets_objectness = tf.reshape(results['bb_targets_objectness'], [-1, 2])
             bb_targets_objectness = tf.slice(tf.nn.softmax(bb_targets_objectness, -1), [0, 1], [-1, 1])
             bb_targets_objectness = tf.reshape(bb_targets_objectness, [-1])
             bb_targets_embedding = tf.reshape(results['bb_targets_embedding'], [-1, self.config['box_embedding_len']])
             return_vals['bb_targets_offset'] = bb_targets_offset
             return_vals['bb_targets_cls'] = bb_targets_cls
+            return_vals['bb_targets_tl'] = bb_targets_tl
             return_vals['bb_targets_objectness'] = bb_targets_objectness
             return_vals['bb_targets_embedding'] = bb_targets_embedding
 

@@ -23,13 +23,16 @@ import numpy as np
 
 TL_CLS = 8
 
-class BoundingBoxEvaluator(object):
-    def __init__(self, num_classes):
+class BoundingBoxEvaluatorTL(object):
+    def __init__(self, num_classes, num_tl):
         self.num_classes = num_classes
-        self.num_tl_classes = 6
-        self.fp = [0 for i in range(num_classes)]
-        self.tp = [0 for i in range(num_classes)]
-        self.fn = [0 for i in range(num_classes)]
+        self.num_tl_classes = num_tl
+        self.fp = [0 for i in range(num_classes + self.num_tl_classes)]
+        self.tp = [0 for i in range(num_classes + self.num_tl_classes)]
+        self.fn = [0 for i in range(num_classes + self.num_tl_classes)]
+        self.tl_fp = [0 for i in range(self.num_tl_classes)]
+        self.tl_tp = [0 for i in range(self.num_tl_classes)]
+        self.tl_fn = [0 for i in range(self.num_tl_classes)]
 
     def _iou(self, box1, boxes2):
         b1_x1, b1_y1, b1_x2, b1_y2 = np.split(box1, 4, axis=0)
@@ -59,17 +62,23 @@ class BoundingBoxEvaluator(object):
 
         def add_cls(cls):
             detections = []
+            detection_tl_cls = []
             for detection in detection_list:
                 width = detection.box.x2 - detection.box.x1;
                 height = detection.box.y2 - detection.box.y1
-                if detection.box.cls == cls and width > min_width and height > min_height:
+                det_cls = detection.box.cls if detection.box.cls != TL_CLS else detection.box.tl + self.num_classes
+                if det_cls == cls and width > min_width and height > min_height:
                     detections += [[detection.box.x1, detection.box.y1, detection.box.x2, detection.box.y2]]
+                    detection_tl_cls.append(detection.box.tl)
             detections = np.array(detections)
+            detection_tl_cls = np.array(detection_tl_cls)
             gt_boxes_cls = gt_boxes[:, 0]
             gt_boxes_tl = gt_boxes[:, 1]
+            gt_boxes_tl_padded = gt_boxes_tl + self.num_classes
+            gt_boxes_cls_with_tl = np.where(gt_boxes_cls == TL_CLS, gt_boxes_tl_padded, gt_boxes_cls)
             gt_boxes_w = gt_boxes[:, 4] - gt_boxes[:, 2]
             gt_boxes_h = gt_boxes[:, 5] - gt_boxes[:, 3]
-            masked_gt_boxes = gt_boxes[np.logical_and(gt_boxes_cls == cls,
+            masked_gt_boxes = gt_boxes[np.logical_and(gt_boxes_cls_with_tl == cls,
                                                       np.logical_and(gt_boxes_w > min_width, gt_boxes_h > min_height))]
             masked_gt_boxes = masked_gt_boxes[:, 2:]
 
@@ -97,12 +106,12 @@ class BoundingBoxEvaluator(object):
                     self.fp[cls] += 1
             self.fn[cls] += np.shape(unused_box_idx)[0]
 
-        for cls in range(self.num_classes):
+        for cls in range(self.num_classes + self.num_tl_classes):
             add_cls(cls)
 
     def print_results(self):
         print('Bounding box evaluation results:')
-        for cls in range(self.num_classes):
+        for cls in range(self.num_classes + self.num_tl_classes):
             precision = self.tp[cls] / (self.tp[cls] + self.fp[cls]) if (self.tp[cls] + self.fp[cls]) > 0 else -1.0
             recall = self.tp[cls] / (self.tp[cls] + self.fn[cls]) if (self.tp[cls] + self.fn[cls]) > 0 else -1.0
             print('Class %d - Precision@0.5IoU: %f, Recall@0.5IoU: %f' % (cls, precision, recall))
