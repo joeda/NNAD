@@ -53,7 +53,7 @@ class BoxDecoder(tf.keras.Model):
 
         self.box_decoder = SingleDecoder('box_decoder', 4 * BOXES_PER_POS)
         self.cls_decoder = SingleDecoder('cls_decoder', config['num_bb_classes'] * BOXES_PER_POS)
-        self.tl_decoder = SingleDecoder('tl_decoder', config['num_tl_classes'] * BOXES_PER_POS)
+        self.depth_decoder = SingleDecoder('depth_decoder', BOXES_PER_POS)
         self.obj_decoder = SingleDecoder('obj_decoder', 2 * BOXES_PER_POS)
         self.embedding_decoder = SingleDecoder('embedding_decoder',
                                                config['box_embedding_len'] * BOXES_PER_POS)
@@ -70,14 +70,14 @@ class BoxDecoder(tf.keras.Model):
 
         box = self.box_decoder(x, train_batch_norm=train_batch_norm)
         cls = self.cls_decoder(x, train_batch_norm=train_batch_norm)
-        tl = self.tl_decoder(x, train_batch_norm=train_batch_norm)
+        depth = self.depth_decoder(x, train_batch_norm=train_batch_norm)
         obj = self.obj_decoder(x, train_batch_norm=train_batch_norm)
         embedding = self.embedding_decoder(x, train_batch_norm=train_batch_norm)
         embedding = tf.reshape(embedding, [n, -1, self.config['box_embedding_len']])
         embedding = tf.math.l2_normalize(embedding, axis=-1)
         embedding = tf.reshape(embedding, [n, -1, self.config['box_embedding_len'] * BOXES_PER_POS])
 
-        results = [box, cls, tl, obj, embedding]
+        results = [box, cls, depth, obj, embedding]
 
         if self.delta_decoder:
             delta = self.delta_decoder(x, train_batch_norm=train_batch_norm)
@@ -106,11 +106,11 @@ class BoxBranch(tf.keras.Model):
 
         box = tf.concat([entry[0] for entry in res], axis=1)
         cls = tf.concat([entry[1] for entry in res], axis=1)
-        tl = tf.concat([entry[2] for entry in res], axis=1)
+        depth = tf.concat([entry[2] for entry in res], axis=1)
         obj = tf.concat([entry[3] for entry in res], axis=1)
         embedding = tf.concat([entry[4] for entry in res], axis=1)
 
-        results = [box, cls, tl, obj, embedding]
+        results = [box, cls, depth, obj, embedding]
 
         if self.box_delta_regression:
             delta_regression = tf.concat([entry[5] for entry in res], axis=1)

@@ -47,6 +47,7 @@ private:
     bfs::path m_groundTruthPath;
     bfs::path m_leftImgPath;
     bfs::path m_prevLeftImgPath;
+    bfs::bath m_disparityPath;
     std::string m_groundTruthSubstring;
     std::string m_leftImgSubstring;
     bool m_extractBoundingboxes;

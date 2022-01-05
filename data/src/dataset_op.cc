@@ -351,7 +351,7 @@ private:
         int numBoxes = list.boxes.size();
         Tensor* objectnessTensor = nullptr;
         Tensor* clsTensor = nullptr;
-        Tensor* tlTensor = nullptr;
+        Tensor* depthTensor = nullptr;
         Tensor* idTensor = nullptr;
         Tensor* prevIdTensor = nullptr;
         Tensor* offsetTensor = nullptr;
@@ -363,7 +363,7 @@ private:
         CHECK(status.ok(), "Allocation of output tensor failed");
         status = context->allocate_output("bb_targets_cls", TensorShape({numTargets, 1}), &clsTensor);
         CHECK(status.ok(), "Allocation of output tensor failed");
-        status = context->allocate_output("bb_targets_tl", TensorShape({numTargets, 1}), &tlTensor);
+        status = context->allocate_output("bb_targets_depth", TensorShape({numTargets, 1}), &depthTensor);
         CHECK(status.ok(), "Allocation of output tensor failed");
         status = context->allocate_output("bb_targets_id", TensorShape({numTargets, 1}), &idTensor);
         CHECK(status.ok(), "Allocation of output tensor failed");
@@ -379,7 +379,7 @@ private:
         CHECK(status.ok(), "Allocation of output tensor failed");
         auto *objectnessData = objectnessTensor->flat<int32_t>().data();
         auto *clsData = clsTensor->flat<int32_t>().data();
-        auto *tlData = tlTensor->flat<int32_t>().data();
+        auto *depthData = depthTensor->flat<float>().data();
         auto *idData = idTensor->flat<tensorflow::int64>().data();
         auto *prevIdData = prevIdTensor->flat<tensorflow::int64>().data();
         auto *offsetData = offsetTensor->flat<float>().data();
@@ -390,7 +390,7 @@ private:
             for (auto &target : targets) {
                 *(objectnessData++) = target.objectness;
                 *(clsData++) = target.cls;
-                *(tlData++) = target.tl;
+                *(depthData++) = target.depth;
                 *(idData++) = target.id;
                 *(offsetData++) = target.dxc;
                 *(offsetData++) = target.dyc;
@@ -456,7 +456,7 @@ REGISTER_OP("Dataset")
     .Output("pixelwise_labels: int32")
     .Output("bb_targets_objectness: int32")
     .Output("bb_targets_cls: int32")
-    .Output("bb_targets_tl: int32")
+    .Output("bb_targets_depth: float32")
     .Output("bb_targets_id: int64")
     .Output("bb_targets_prev_id: int64")
     .Output("bb_targets_offset: float32")

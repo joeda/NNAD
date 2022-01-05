@@ -30,7 +30,7 @@ public:
 
     void targetsFromBBList(std::shared_ptr<DatasetEntry> ds) const;
     std::vector<BoundingBoxDetection> bbListFromTargets(VectorView<float>(objectnessScores),
-                                                        VectorView<int64_t> objectClass, VectorView<int64_t> tl, VectorView<float> regression,
+                                                        VectorView<int64_t> objectClass, VectorView<float> depth, VectorView<float> regression,
                                                         VectorView<float> deltaRegression, VectorView<float> embedding,
                                                         int embeddingLength, double threshold) const;
 

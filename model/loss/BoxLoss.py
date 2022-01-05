@@ -30,7 +30,7 @@ class BoxLoss(tf.keras.Model):
 
         self.weight_objectness = WeightKendall('weight_objectness')
         self.weight_class = WeightKendall('weight_class')
-        self.weight_tl = WeightKendall('weight_tl')
+        self.weight_depth = WeightKendall('weight_depth')
         self.weight_bb = WeightKendall('weight_bb')
         if box_delta_regression:
             self.weight_delta = WeightKendall('weight_delta')
@@ -41,20 +41,20 @@ class BoxLoss(tf.keras.Model):
 
         targets_bb = results['bb_targets_offset']
         targets_cls = results['bb_targets_cls']
-        targets_tl = results['bb_targets_tl']
+        targets_depth = results['bb_targets_depth']
         targets_obj = results['bb_targets_objectness']
         gt_targets_bb = ground_truth['bb_targets_offset']
         gt_targets_cls = ground_truth['bb_targets_cls']
-        gt_targets_tl = ground_truth['bb_targets_tl']
+        gt_targets_depth = ground_truth['bb_targets_depth']
         gt_targets_obj = ground_truth['bb_targets_objectness']
 
         targets_bb = tf.reshape(targets_bb, [-1, 4])
         targets_cls = tf.reshape(targets_cls, [-1, self.num_bb_classes])
-        targets_tl = tf.reshape(targets_tl, [-1, self.num_tl_classes])
+        targets_depth = tf.reshape(targets_depth, [-1, 1])
         targets_obj = tf.reshape(targets_obj, [-1, 2])
         gt_targets_bb = tf.reshape(gt_targets_bb, [-1, 4])
         gt_targets_cls = tf.reshape(gt_targets_cls, [-1])
-        gt_targets_tl = tf.reshape(gt_targets_tl, [-1])
+        gt_targets_depth = tf.reshape(gt_targets_depth, [-1])
         gt_targets_obj = tf.reshape(gt_targets_obj, [-1])
 
         shape = tf.shape(targets_bb)
@@ -67,50 +67,50 @@ class BoxLoss(tf.keras.Model):
 
         # We do not care for bounding box regression or classification of targets that do not correspond to an object
         mask_bb = tf.equal(gt_targets_obj, tf.constant([1]))
-        mask_tl = tf.not_equal(gt_targets_tl, tf.constant([-1]))
-        mask_tl = tf.math.logical_and(mask_bb, mask_tl)
+        #mask_tl = tf.not_equal(gt_targets_tl, tf.constant([-1]))
+        #mask_tl = tf.math.logical_and(mask_bb, mask_tl)
         masked_targets_bb = tf.boolean_mask(targets_bb, mask_bb)
         masked_gt_targets_bb = tf.boolean_mask(gt_targets_bb, mask_bb)
         masked_targets_cls = tf.boolean_mask(targets_cls, mask_bb)
         masked_gt_targets_cls = tf.boolean_mask(gt_targets_cls, mask_bb)
-        masked_targets_tl = tf.boolean_mask(targets_tl, mask_tl)
-        masked_gt_targets_tl = tf.boolean_mask(gt_targets_tl, mask_tl)
+        masked_targets_depth = tf.boolean_mask(targets_depth, mask_bb)
+        masked_gt_targets_depth = tf.boolean_mask(gt_targets_depth, mask_bb)
 
-        tf.print(masked_targets_bb)
-        tf.print(masked_targets_tl)
+        #tf.print(masked_targets_bb)
+        #tf.print(masked_targets_tl)
 
         masked_gt_targets_cls = tf.stop_gradient(masked_gt_targets_cls)
-        masked_gt_targets_tl = tf.stop_gradient(masked_gt_targets_tl)
+        masked_gt_targets_depth = tf.stop_gradient(masked_gt_targets_depth)
         masked_gt_targets_obj = tf.stop_gradient(masked_gt_targets_obj)
         masked_gt_targets_bb = tf.stop_gradient(masked_gt_targets_bb)
         obj_loss = sparse_focal_loss(logits=masked_targets_obj, labels=masked_gt_targets_obj)
         cls_loss = sparse_focal_loss(logits=masked_targets_cls, labels=masked_gt_targets_cls)
-        tl_loss = sparse_focal_loss(logits=masked_targets_tl, labels=masked_gt_targets_tl)
+        depth_loss = smooth_l1_loss(logits=masked_targets_depth, labels=masked_gt_targets_depth, delta=0.1)
         #cls_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=masked_targets_cls,
         #                                                          labels=masked_gt_targets_cls)
         bb_loss = smooth_l1_loss(logits=masked_targets_bb, labels=masked_gt_targets_bb, delta=0.1)
         obj_loss = tf.reduce_sum(obj_loss) / num_anchors
         cls_loss = tf.reduce_sum(cls_loss) / num_anchors
-        tl_loss = tf.reduce_sum(tl_loss) / num_anchors
+        depth_loss = tf.reduce_sum(depth_loss) / num_anchors
         bb_loss = tf.reduce_sum(bb_loss) / num_anchors
 
         # Apply some sensible scaling before loss weighting
         obj_loss *= 5000.0
         cls_loss *= 10000.0
-        tl_loss *= 2000.0
+        depth_loss *= 5000.0
         bb_loss *= 20000.0
 
         obj_loss = self.weight_objectness(obj_loss, step)
         cls_loss = self.weight_class(cls_loss, step)
-        tl_loss = self.weight_tl(tl_loss, step)
+        depth_loss = self.weight_depth(depth_loss, step)
         bb_loss = self.weight_bb(bb_loss, step)
 
         tf.summary.scalar('bb_cls_loss', cls_loss, step)
-        tf.summary.scalar('bb_tl_loss', cls_loss, step)
+        tf.summary.scalar('bb_depth_loss', depth_loss, step)
         tf.summary.scalar('bb_obj_loss', obj_loss, step)
         tf.summary.scalar('bb_box_loss', bb_loss, step)
 
-        losses = [cls_loss, tl_loss, obj_loss, bb_loss]
+        losses = [cls_loss, depth_loss, obj_loss, bb_loss]
 
         if self.box_delta_regression:
             targets_delta = results['bb_targets_delta']

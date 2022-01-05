@@ -149,7 +149,7 @@ std::vector<TargetBox> BBUtils::targetsFromSingleBBList(std::vector<BoundingBox>
 
 std::vector<BoundingBoxDetection> BBUtils::bbListFromTargets(VectorView<float>(objectnessScores),
                                                              VectorView<int64_t> objectClass,
-                                                             VectorView<int64_t> tl,
+                                                             VectorView<float> depth,
                                                              VectorView<float> regression,
                                                              VectorView<float> deltaRegression,
                                                              VectorView<float> embedding,
@@ -170,7 +170,7 @@ std::vector<BoundingBoxDetection> BBUtils::bbListFromTargets(VectorView<float>(o
                 target.deltaPrevH = deltaRegression[4 * idx + 3];
             }
             target.cls = objectClass[idx];
-            target.tl = tl[idx];
+            target.depth = depth[idx];
             target.objectnessScore = objectnessScores[idx];
             target.embedding.resize(embeddingLength);
             std::memcpy(&target.embedding[0], embedding.data() + embeddingLength * idx,
@@ -301,7 +301,7 @@ void BBUtils::boxToTarget(const BoundingBox &box, const AnchorBox &anchor, Targe
 {
     target.objectness = Objectness::OBJECT;
     target.cls = box.cls;
-    target.tl = box.tl;
+    target.depth = box.depth;
 
     double anchorWidth = anchor.x2 - anchor.x1;
     double anchorHeight = anchor.y2 - anchor.y1;
@@ -335,7 +335,7 @@ void BBUtils::detectionToBox(const TargetBoxDetection &targetDetection,
     boxDetection.embedding = targetDetection.embedding;
     auto &box = boxDetection.box;
     box.cls = targetDetection.cls;
-    box.tl = targetDetection.tl;
+    box.depth = targetDetection.depth;
 
     double anchorWidth = anchor.x2 - anchor.x1;
     double anchorHeight = anchor.y2 - anchor.y1;
