@@ -7,6 +7,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(OpenCV_DIR "/opt/mrtsoftware/release/share/OpenCV")
+
 find_package(JsonCpp REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(Boost COMPONENTS filesystem system REQUIRED)

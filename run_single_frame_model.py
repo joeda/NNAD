@@ -78,10 +78,11 @@ while True:
     if config['train_boundingboxes']:
         bb_targets_offset = output['bb_targets_offset'].numpy()
         bb_targets_cls = output['bb_targets_cls'].numpy()
+        bb_targets_depth = output['bb_targets_depth'].numpy()
         bb_targets_objectness = output['bb_targets_objectness'].numpy()
         bb_targets_embedding = output['bb_targets_embedding'].numpy()
 
-        boxes = bbutils.bbListFromTargetsBuffer(bb_targets_objectness, bb_targets_cls, bb_targets_offset,
+        boxes = bbutils.bbListFromTargetsBuffer(bb_targets_objectness, bb_targets_cls, bb_targets_depth, bb_targets_offset,
                                                 np.array([]), bb_targets_embedding, 0.5)
         bb_eval.add(gt['bb_list'].numpy(), boxes)
 

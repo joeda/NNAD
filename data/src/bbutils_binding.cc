@@ -22,6 +22,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <iostream>
+
 template <typename T, int N>
 void checkBufferInfo(pybind11::buffer_info &info)
 {

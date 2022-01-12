@@ -42,14 +42,15 @@ public:
 private:
     std::string keyToPrev(std::string key) const;
     std::tuple<std::string, bool> removeGroup(std::string label) const;
-    std::tuple<cv::Mat, cv::Mat, BoundingBoxList> parseJson(const std::string jsonStr, cv::Size imageSize);
+    std::tuple<cv::Mat, cv::Mat, BoundingBoxList> parseJson(const std::string jsonStr, const cv::Mat& disp, cv::Size imageSize);
 
     bfs::path m_groundTruthPath;
     bfs::path m_leftImgPath;
     bfs::path m_prevLeftImgPath;
-    bfs::bath m_disparityPath;
+    bfs::path m_disparityPath;
     std::string m_groundTruthSubstring;
     std::string m_leftImgSubstring;
+    std::string m_disparitySubstring;
     bool m_extractBoundingboxes;
     bool m_hasSequence;
     double m_fov;

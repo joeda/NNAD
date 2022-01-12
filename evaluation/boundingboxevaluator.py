@@ -63,11 +63,12 @@ class BoundingBoxEvaluator(object):
                     detections += [[detection.box.x1, detection.box.y1, detection.box.x2, detection.box.y2]]
             detections = np.array(detections)
             gt_boxes_cls = gt_boxes[:, 0]
-            gt_boxes_w = gt_boxes[:, 3] - gt_boxes[:, 1]
-            gt_boxes_h = gt_boxes[:, 4] - gt_boxes[:, 2]
+            gt_boxes_depth = gt_boxes[:, 1]
+            gt_boxes_w = gt_boxes[:, 4] - gt_boxes[:, 2]
+            gt_boxes_h = gt_boxes[:, 5] - gt_boxes[:, 3]
             masked_gt_boxes = gt_boxes[np.logical_and(gt_boxes_cls == cls,
                                                       np.logical_and(gt_boxes_w > min_width, gt_boxes_h > min_height))]
-            masked_gt_boxes = masked_gt_boxes[:, 1:]
+            masked_gt_boxes = masked_gt_boxes[:, 2:]
 
             if np.shape(masked_gt_boxes)[0] == 0:
                 self.fp[cls] += np.shape(detections)[0]

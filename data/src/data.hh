@@ -80,6 +80,8 @@ struct AnchorBox {
     /* Bottom-right corner */
     int32_t x2;
     int32_t y2;
+
+    float depth;
 };
 
 enum Objectness {
@@ -90,7 +92,7 @@ enum Objectness {
 
 struct TargetBox {
     TargetBox() : id(0), dxc(0.0), dyc(0.0), dw(0.0), dh(0.0), deltaValid(0), deltaPrevXc(0.0), deltaPrevYc(0.0),
-    deltaPrevW(0.0), deltaPrevH(0.0), cls(0), objectness(Objectness::NO_OBJECT)
+    deltaPrevW(0.0), deltaPrevH(0.0), cls(0), depth(0.0), objectness(Objectness::NO_OBJECT)
     {
     }
 
@@ -119,7 +121,7 @@ struct TargetBox {
 };
 
 struct TargetBoxDetection {
-    TargetBoxDetection() : dxc(0.0), dyc(0.0), dw(0.0), dh(0.0), cls(0), objectnessScore(0.0)
+    TargetBoxDetection() : dxc(0.0), dyc(0.0), dw(0.0), dh(0.0), cls(0), depth(0.0), objectnessScore(0.0)
     {
     }
 

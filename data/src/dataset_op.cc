@@ -302,7 +302,7 @@ public:
             outputEmpty(context, "pixelwise_labels");
             outputEmpty(context, "bb_targets_objectness");
             outputEmpty(context, "bb_targets_cls");
-            outputEmpty(context, "bb_targets_tl");
+            outputEmpty(context, "bb_targets_depth");
             outputEmpty(context, "bb_targets_id");
             outputEmpty(context, "bb_targets_prev_id");
             outputEmpty(context, "bb_targets_offset");
@@ -410,7 +410,7 @@ private:
         }
         for (auto &box : list.boxes) {
             *(boxesData++) = box.cls;
-            *(boxesData++) = box.tl;
+            *(boxesData++) = box.depth;
             *(boxesData++) = box.x1;
             *(boxesData++) = box.y1;
             *(boxesData++) = box.x2;
@@ -477,7 +477,7 @@ REGISTER_OP("Dataset")
         c->set_output(idx++, c->MakeShape({-1, -1, 1})); /* pixelwise_labels */
         c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_objectness */
         c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_cls */
-        c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_tl */
+        c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_depth */
         c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_id */
         c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_prev_id */
         c->set_output(idx++, c->MakeShape({-1, 4})); /* bb_targest_offset */

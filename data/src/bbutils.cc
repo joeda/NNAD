@@ -26,6 +26,20 @@ BBUtils::BBUtils(int width, int height, int scale) : m_width(width), m_height(he
 {
     CHECK(height % scale == 0, "Height must be divisible by scale");
     CHECK(width % scale == 0, "Width must be divisible by scale");
+    std::map<int, std::vector<double>> depthLookup{{48, {4.180983730685947, 4.303287024768623, 4.169273560680486, 3.878170278534493, 3.8897873644064926, }},
+                                                   {64, {4.18935816550426, 4.169692903024991, 3.9751562512867147, 3.8003547517060547, 3.93407416938058, }},
+                                                   {96, {3.943458180728441, 4.0417153900934375, 3.866773667834607, 3.712700929183552, 3.622397628378822, }},
+                                                   {128, {3.8301307623771845, 3.870271884361034, 3.802965600858119, 3.5074036433816067, 3.5000080575578316, }},
+                                                   {192, {3.6590475761680157, 3.729644411637628, 3.6490860735688937, 3.48467407870976, 3.4783142800033717, }},
+                                                   {256, {3.548948475342533, 3.5402489904628016, 3.536303926494152, 3.4202222067762253, 3.3185047388050775, }},
+                                                   {384, {3.3305275535547287, 3.412503714697786, 3.4989482567582444, 3.4308081670291983, 3.2132220764571224, }},
+                                                   {512, {3.2498298097859584, 3.2895190918530703, 3.394179972295157, 3.449556850211472, 3.156322806357458, }},
+                                                   {768, {3.1526302333005223, 3.1632754249997226, 3.3056119980188363, 3.360806222767012, 3.1198801273294703, }},
+                                                   {1024, {2.9656664752769353, 3.044875915327097, 3.240031774733845, 3.384034687867842, 3.1023801307608085, }},
+                                                   {1536, {2.8385511236419414, 2.9153779721138178, 3.1264550558110087, 3.319111544785094, 2.94832549032906, }},
+                                                   {2048, {2.720513781462783, 2.789608372313202, 3.0438124116819454, 3.27342951831106, 2.929197283860388, }},
+                                                   {3072, {2.5674736798532605, 2.6461581229322038, 2.9533376696188256, 3.1629333180376817, 2.7714604821344504, }},
+                                                   {4096, {2.02958582188163, 2.0852136830917525, 2.344136879054102, 2.561365332293856, 2.741279919937926, }}};
 
     int xSteps = width / scale;
     int ySteps = height / scale;
@@ -39,7 +53,8 @@ BBUtils::BBUtils(int width, int height, int scale) : m_width(width), m_height(he
         for (int i = 0; i < xSteps; ++i) {
             int xc = i * scale + 0.5 * scale;
             for (auto &area : m_areas) {
-                for (auto &ratio : m_ratios) {
+                for (size_t ratioIdx{0}; ratioIdx < m_ratios.size(); ++ratioIdx) {
+                    const auto ratio = m_ratios.at(ratioIdx);
                     int boxWidth = std::pow(area * ratio, 0.5) * scale;
                     int boxHeight = std::pow(area / ratio, 0.5) * scale;
                     int x1 = xc - 0.5 * boxWidth;
@@ -53,6 +68,7 @@ BBUtils::BBUtils(int width, int height, int scale) : m_width(width), m_height(he
                     m_anchorBoxes[idx].y1 = y1;
                     m_anchorBoxes[idx].x2 = x2;
                     m_anchorBoxes[idx].y2 = y2;
+                    m_anchorBoxes[idx].depth = depthLookup.at(area * scale).at(ratioIdx);
                     ++idx;
                 }
             }
@@ -301,7 +317,7 @@ void BBUtils::boxToTarget(const BoundingBox &box, const AnchorBox &anchor, Targe
 {
     target.objectness = Objectness::OBJECT;
     target.cls = box.cls;
-    target.depth = box.depth;
+    target.depth = box.depth - anchor.depth;
 
     double anchorWidth = anchor.x2 - anchor.x1;
     double anchorHeight = anchor.y2 - anchor.y1;
@@ -335,7 +351,7 @@ void BBUtils::detectionToBox(const TargetBoxDetection &targetDetection,
     boxDetection.embedding = targetDetection.embedding;
     auto &box = boxDetection.box;
     box.cls = targetDetection.cls;
-    box.depth = targetDetection.depth;
+    box.depth = targetDetection.depth + anchor.depth;
 
     double anchorWidth = anchor.x2 - anchor.x1;
     double anchorHeight = anchor.y2 - anchor.y1;

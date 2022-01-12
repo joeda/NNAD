@@ -85,7 +85,7 @@ class BoxLoss(tf.keras.Model):
         masked_gt_targets_bb = tf.stop_gradient(masked_gt_targets_bb)
         obj_loss = sparse_focal_loss(logits=masked_targets_obj, labels=masked_gt_targets_obj)
         cls_loss = sparse_focal_loss(logits=masked_targets_cls, labels=masked_gt_targets_cls)
-        depth_loss = smooth_l1_loss(logits=masked_targets_depth, labels=masked_gt_targets_depth, delta=0.1)
+        depth_loss = tf.math.square(masked_targets_depth - masked_gt_targets_depth)
         #cls_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=masked_targets_cls,
         #                                                          labels=masked_gt_targets_cls)
         bb_loss = smooth_l1_loss(logits=masked_targets_bb, labels=masked_gt_targets_bb, delta=0.1)

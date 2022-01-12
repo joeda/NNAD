@@ -19,9 +19,120 @@
 #include <sstream>
 #include <iomanip>
 
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+
 #include "utils.hh"
 
 #include "cityscapes_dataset.hh"
+
+struct HistOpts {
+    int bins{3000};
+    int maxDisp{30000};
+};
+
+struct StereoOpts {
+    double base;
+    double fy;
+};
+
+template <typename T, std::enable_if_t<std::is_arithmetic<T>::value, bool> = true>
+int getPercentile(const std::vector<T>& histogram, const double percentile) {
+    if (histogram.empty()) {
+        throw std::runtime_error("Can't get percentile on empty vector");
+    }
+    std::vector<T> sum(histogram.size());
+    std::partial_sum(histogram.begin(), histogram.end(), sum.begin());
+    for (int i = 0; i < sum.size(); ++i) {
+        if (sum.at(i) / sum.back() >= percentile) {
+            return i;
+        }
+    }
+    return sum.size() - 1;
+}
+
+template <typename T>
+std::vector<T> matToVector(const cv::Mat& mat) {
+    cv::Mat flat = mat.reshape(1, mat.total() * mat.channels());
+    std::vector<T> vec = mat.isContinuous() ? flat : flat.clone();
+    return vec;
+}
+
+cv::Mat drawMasks(const Json::Value& root, const cv::Size& imgSz) {
+    cv::Mat img(imgSz, CV_32SC1, cv::Scalar(0));
+
+    for (auto idx{0}; idx < root["objects"].size(); ++idx) {
+        const auto annotation = root["objects"][idx];
+        if (annotation.get("deleted", 0).asInt() == 1) {
+            continue;
+        }
+        std::vector<cv::Point> points;
+        for (const auto& point : annotation["polygon"]) {
+            auto x = point[0].asInt();
+            auto y = point[1].asInt();
+            points.emplace_back(x, y);
+        }
+        int numPoints = points.size();
+        const cv::Point* ppoints = points.data();
+        cv::fillPoly(img, &ppoints, &numPoints, 1, cv::Scalar(idx + 1));
+    }
+    return img;
+}
+
+template <typename T>
+cv::Mat getMaskByIdx(const cv::Mat& masks, const int idx) {
+    cv::Mat res = cv::Mat::zeros(masks.size(), CV_8U);
+    cv::Mat m2;
+    masks.copyTo(m2);
+//    struct Operator
+//    {
+//        Operator(cv::Mat* target, const int idx) {
+//            target_ = target;
+//            idx_ = idx;
+//        }
+//        void operator ()(T &pixel, int * position) const
+//        {
+//            if (pixel == idx_) {
+//                target_->at<uint8_t>(position[0], position[1]) = 1;
+//            }
+//        }
+//
+//        cv::Mat* target_;
+//        int idx_;
+//    };
+//    masks.forEach<T>(Operator(&res, idx));
+    m2.forEach<T>([&res, &idx](T& pixel, const int position[]) -> void {
+        if (pixel == idx) {
+            auto p0 = position[0];
+            auto p1 = position[1];
+            res.at<uint8_t>(p0, p1) = 1;
+        }
+    });
+    return res;
+}
+
+cv::Mat getDepth(const cv::Mat& polyMask, const cv::Mat& disp, const int idx, const HistOpts& histOpts = HistOpts()) {
+    cv::Mat valid;
+    cv::Mat disp8U;
+    disp.convertTo(disp8U, CV_8U);
+    cv::bitwise_and(disp8U, polyMask, valid);
+    // cv::Mat viz;
+    //    cv::threshold(valid, viz, 0, 255, cv::THRESH_BINARY);
+    //    cv::cvtColor(viz, viz, cv::COLOR_GRAY2BGR);
+    cv::MatND hist;
+    std::array<int, 1> channels{0};
+    // int channels[] = {0};
+    std::array<float, 2> range{0, static_cast<float>(histOpts.maxDisp)};
+    std::array<std::array<float, 2>, 1>{range};
+    const float* ranges[] = {range.data()};
+    std::array<int, 1> histSize{histOpts.bins};
+    cv::calcHist(&disp, 1, channels.data(), valid, hist, 1, histSize.data(), ranges);
+    return hist;
+}
+
+double dispToDepth(const double disp, const StereoOpts& opts) {
+    return (opts.fy * opts.base) / disp;
+}
 
 CityscapesDataset::CityscapesDataset(bfs::path basePath, Mode mode)
 {
@@ -32,6 +143,8 @@ CityscapesDataset::CityscapesDataset(bfs::path basePath, Mode mode)
         m_prevLeftImgPath = basePath / bfs::path("leftImg8bit_sequence") / bfs::path("train");
         m_groundTruthSubstring = std::string("_gtFine_polygons.json");
         m_leftImgSubstring = std::string("_leftImg8bit.png");
+        m_disparityPath = basePath / bfs::path("disparity") / bfs::path("train");
+        m_disparitySubstring = std::string("_disparity.png");
         m_extractBoundingboxes = true;
         m_hasSequence = true;
         m_fov = 50.0;
@@ -62,6 +175,8 @@ CityscapesDataset::CityscapesDataset(bfs::path basePath, Mode mode)
         m_prevLeftImgPath = basePath / bfs::path("leftImg8bit_sequence") / bfs::path("test");
         m_groundTruthSubstring = std::string("_gtFine_polygons.json");
         m_leftImgSubstring = std::string("_leftImg8bit.png");
+        m_disparityPath = basePath / bfs::path("disparity") / bfs::path("test");
+        m_disparitySubstring = std::string("_disparity.png");
         m_extractBoundingboxes = false;
         m_hasSequence = true;
         m_fov = 50.0;
@@ -72,6 +187,8 @@ CityscapesDataset::CityscapesDataset(bfs::path basePath, Mode mode)
         m_prevLeftImgPath = basePath / bfs::path("leftImg8bit_sequence") / bfs::path("val");
         m_groundTruthSubstring = std::string("_gtFine_polygons.json");
         m_leftImgSubstring = std::string("_leftImg8bit.png");
+        m_disparityPath = basePath / bfs::path("disparity") / bfs::path("val");
+        m_disparitySubstring = std::string("_disparity.png");
         m_extractBoundingboxes = true;
         m_hasSequence = true;
         m_fov = 50.0;
@@ -123,6 +240,9 @@ std::shared_ptr<DatasetEntry> CityscapesDataset::get(std::size_t i)
     cv::Mat leftImg = cv::imread(leftImgPath.string());
     CHECK(leftImg.data, "Failed to read image " + leftImgPath.string());
     result->input.left = toFloatMat(leftImg);
+    auto dispPath = m_disparityPath / bfs::path(key + m_disparitySubstring);
+    cv::Mat dispImg = cv::imread(dispPath.string(), cv::IMREAD_UNCHANGED);
+    CHECK(dispImg.data, "Failed to read image " + dispPath.string());
     auto prevLeftImgPath = m_prevLeftImgPath / bfs::path(keyToPrev(key) + m_leftImgSubstring);
     cv::Mat prevLeftImg = cv::imread(prevLeftImgPath.string());
     CHECK(prevLeftImg.data, "Failed to read image " + prevLeftImgPath.string());
@@ -130,7 +250,7 @@ std::shared_ptr<DatasetEntry> CityscapesDataset::get(std::size_t i)
     auto jsonPath = m_groundTruthPath / bfs::path(key + m_groundTruthSubstring);
     std::ifstream jsonFs(jsonPath.string());
     std::string jsonStr = std::string(std::istreambuf_iterator<char>(jsonFs), std::istreambuf_iterator<char>());
-    auto [pixelwiseLabels, bbDontCareAreas, bbList] = parseJson(jsonStr, result->input.left.size());
+    auto [pixelwiseLabels, bbDontCareAreas, bbList] = parseJson(jsonStr, dispImg, result->input.left.size());
     result->gt.pixelwiseLabels = pixelwiseLabels;
     result->gt.bbDontCareAreas = bbDontCareAreas;
     if (m_extractBoundingboxes) {
@@ -153,7 +273,7 @@ std::tuple<std::string, bool> CityscapesDataset::removeGroup(std::string label) 
     return {label, isGroup};
 }
 
-std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const std::string jsonStr,
+std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const std::string jsonStr, const cv::Mat& disp,
                                                                            cv::Size imageSize)
 {
     Json::Value root;
@@ -169,7 +289,10 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
     bbList.height = imageSize.height;
 
     int64_t objectId = getRandomId();
-    for (auto &annotation : root["objects"]) {
+    auto count{0};
+    auto masks = drawMasks(root, imageSize);
+    for (auto idx{0}; idx < root["objects"].size(); ++idx) {
+        const auto& annotation = root["objects"][idx];
         if (annotation.get("deleted", 0).asInt() == 1) {
             continue;
         }
@@ -206,40 +329,50 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
         }
 
         /*traffic light specializations */
-        std::string tlCls{""};
-        if (cls == "traffic light") {
-            if (annotation.isMember("attributes")) {
-                if (annotation["attributes"].isMember("relevant") && annotation["attributes"]["relevant"].asString() == "yes") {
-                    tlCls = "traffic light car relevant";
-                } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "car") {
-                    tlCls = "traffic light car irrelevant";
-                } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "pedestrian") {
-                    tlCls = "traffic light pedestrian";
-                } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "bike") {
-                    tlCls = "traffic light bike";
-                } else {
-                    tlCls = "traffic light other";
-                }
-            } else {
-                std::cout << "Traffic light without attributes" << std::endl;
-            }
-
-        }
+//        std::string tlCls{""};
+//        if (cls == "traffic light") {
+//            if (annotation.isMember("attributes")) {
+//                if (annotation["attributes"].isMember("relevant") && annotation["attributes"]["relevant"].asString() == "yes") {
+//                    tlCls = "traffic light car relevant";
+//                } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "car") {
+//                    tlCls = "traffic light car irrelevant";
+//                } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "pedestrian") {
+//                    tlCls = "traffic light pedestrian";
+//                } else if (annotation["attributes"].isMember("type") && annotation["attributes"]["type"].asString() == "bike") {
+//                    tlCls = "traffic light bike";
+//                } else {
+//                    tlCls = "traffic light other";
+//                }
+//            } else {
+//                std::cout << "Traffic light without attributes" << std::endl;
+//            }
+//
+//        }
 
         /* Generate bounding box list */
         if (m_instanceDict.count(cls) > 0) {
+            StereoOpts opts{0.209313, 2265};
+            auto mask = getMaskByIdx<int>(masks, idx + 1);
+            auto hist = getDepth(mask, disp, count++);
+            auto histVec = matToVector<float>(hist);
+            auto depthIdx = getPercentile(histVec, 0.5);
+            auto disparity = depthIdx * (HistOpts().maxDisp / HistOpts().bins);
+            auto depth = dispToDepth(disparity, opts) * 100;
+            depth = std::min(depth, 200.);
+            depth = depth > 1 ? std::log(depth) : 0;
             BoundingBox boundingBox;
             boundingBox.id = objectId++;
             boundingBox.cls = m_instanceDict.at(cls);
-            if (tlCls.empty()) {
-                boundingBox.tl = m_tlDict.at("ignore");
-            } else {
-                boundingBox.tl = m_tlDict.at(tlCls);
-            }
+//            if (tlCls.empty()) {
+//                boundingBox.tl = m_tlDict.at("ignore");
+//            } else {
+//                boundingBox.tl = m_tlDict.at(tlCls);
+//            }
             boundingBox.x1 = xMin;
             boundingBox.x2 = xMax;
             boundingBox.y1 = yMin;
             boundingBox.y2 = yMax;
+            boundingBox.depth = depth;
             bbList.boxes.push_back(boundingBox);
         }
     }
