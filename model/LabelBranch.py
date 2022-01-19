@@ -58,3 +58,17 @@ class LabelBranch(tf.keras.Model):
         x = self.feature_extractor(x, training=training)
         x = self.upsample2(x, training=training)
         return x
+
+class LaneBranch(tf.keras.Model):
+    def __init__(self, name, config):
+        super().__init__(name=name)
+
+        self.feature_extractor = SeparableConvBlock('feature_extractor', HEADS_NUM_BLOCKS, BIFPN_NUM_FEATURES)
+        self.upsample2 = Upsample('upsample', 4, 1, False)
+
+    def call(self, x, training=False):
+        x, _, _, _, _, _ = x # We only care about feature level P2
+
+        x = self.feature_extractor(x, training=training)
+        x = self.upsample2(x, training=training)
+        return x

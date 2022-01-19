@@ -168,6 +168,8 @@ struct DatasetEntry {
         cv::Mat flowMask;
         cv::Mat pixelwiseLabels;
         cv::Mat bbDontCareAreas;
+        cv::Mat laneEnergy;
+        cv::Mat laneGradients;
         BoundingBoxList bbList;
         int cls; // For pretraining
     } gt;

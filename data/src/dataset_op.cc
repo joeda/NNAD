@@ -299,6 +299,8 @@ public:
             outputEmpty(context, "flow_mask");
             outputEmpty(context, "cls");
             outputEmpty(context, "pixelwise_labels");
+            outputEmpty(context, "lane_energy");
+            outputEmpty(context, "lane_gradients");
             outputEmpty(context, "bb_targets_objectness");
             outputEmpty(context, "bb_targets_cls");
             outputEmpty(context, "bb_targets_id");
@@ -319,6 +321,8 @@ public:
         outputMat<int32_t, 1>(context, data->gt.flowMask, "flow_mask");
         outputInt(context, data->gt.cls, "cls");
         outputMat<int32_t, 1>(context, data->gt.pixelwiseLabels, "pixelwise_labels");
+        outputMat<float, 1>(context, data->gt.laneEnergy, "lane_energy");
+        outputMat<float, 1>(context, data->gt.laneGradients, "lane_gradients");
         outputBBTargets(context, data->gt.bbList);
         outputString(context, data->metadata.key, "key");
         outputInt(context, data->metadata.originalWidth, "original_width");
@@ -445,6 +449,8 @@ REGISTER_OP("Dataset")
     .Output("flow_mask: int32")
     .Output("cls: int32")
     .Output("pixelwise_labels: int32")
+    .Output("lane_energy: float32")
+    .Output("lane_gradient: float32")
     .Output("bb_targets_objectness: int32")
     .Output("bb_targets_cls: int32")
     .Output("bb_targets_id: int64")
@@ -465,6 +471,8 @@ REGISTER_OP("Dataset")
         c->set_output(idx++, c->MakeShape({-1, -1, 1})); /* flow_mask */
         c->set_output(idx++, c->MakeShape({1})); /* cls */
         c->set_output(idx++, c->MakeShape({-1, -1, 1})); /* pixelwise_labels */
+        c->set_output(idx++, c->MakeShape({-1, -1, 1})); /* lane_energy */
+        c->set_output(idx++, c->MakeShape({-1, -1, 1})); /* lane_gradient */
         c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_objectness */
         c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_cls */
         c->set_output(idx++, c->MakeShape({-1, 1})); /* bb_targets_id */

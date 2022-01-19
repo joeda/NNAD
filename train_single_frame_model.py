@@ -69,6 +69,8 @@ heads = Heads('heads', config)
 
 label_loss = LabelLoss('label_loss', config)
 label_loss_val = LabelLoss('label_loss_val', config)
+lane_loss = LaneLoss('lane_loss', config)
+lane_loss_val = LaneLoss('lane_loss_val', config)
 box_loss = BoxLoss('box_loss', config)
 box_loss_val = BoxLoss('box_loss_val', config)
 embedding_loss = EmbeddingLoss('embedding_loss', config)
@@ -89,6 +91,7 @@ def single_train_step():
         losses = []
         if config['train_labels']:
             losses += [label_loss([results, ground_truth], tf.cast(global_step, tf.int64))]
+            losses += [lane_loss([results, ground_truth], tf.cast(global_step, tf.int64))]
         if config['train_boundingboxes']:
             losses += box_loss([results, ground_truth], tf.cast(global_step, tf.int64))
             losses += [embedding_loss([results, ground_truth], tf.cast(global_step, tf.int64))]
@@ -101,6 +104,7 @@ def single_train_step():
         vs = backbone.trainable_variables + fpn1.trainable_variables + fpn2.trainable_variables + heads.trainable_variables
         if config['train_labels']:
             vs += label_loss.trainable_variables
+            vs += lane_loss.trainable_variables
         if config['train_boundingboxes']:
             vs += box_loss.trainable_variables + embedding_loss.trainable_variables
 
@@ -120,6 +124,7 @@ def single_val_step():
     losses = []
     if config['train_labels']:
         losses += [label_loss_val([results, ground_truth], tf.cast(global_step, tf.int64))]
+        losses += [lane_loss_val([results, ground_truth], tf.cast(global_step, tf.int64))]
     if config['train_boundingboxes']:
         losses += box_loss_val([results, ground_truth], tf.cast(global_step, tf.int64))
         losses += [embedding_loss_val([results, ground_truth], tf.cast(global_step, tf.int64))]

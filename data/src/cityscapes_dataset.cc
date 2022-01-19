@@ -29,6 +29,8 @@ CityscapesDataset::CityscapesDataset(bfs::path basePath, Mode mode)
     case Mode::Train:
         m_groundTruthPath = basePath / bfs::path("gtFine") / bfs::path("train");
         m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train");
+        m_laneEnergyPath = basePath / bfs::path("lane_energy") / bfs::path("train");
+        m_laneGradientPath = basePath / bfs::path("gradient") / bfs::path("train");
         m_prevLeftImgPath = basePath / bfs::path("leftImg8bit_sequence") / bfs::path("train");
         m_groundTruthSubstring = std::string("_gtFine_polygons.json");
         m_leftImgSubstring = std::string("_leftImg8bit.png");
@@ -39,6 +41,8 @@ CityscapesDataset::CityscapesDataset(bfs::path basePath, Mode mode)
     case Mode::TrainExtra:
         m_groundTruthPath = basePath / bfs::path("gtCoarse") / bfs::path("train_extra");
         m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train_extra");
+        m_laneEnergyPath = basePath / bfs::path("lane_energy") / bfs::path("train_extra");
+        m_laneGradientPath = basePath / bfs::path("gradient") / bfs::path("train_extra");
         m_prevLeftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train_extra");
         m_groundTruthSubstring = std::string("_gtCoarse_polygons.json");
         m_leftImgSubstring = std::string("_leftImg8bit.png");
@@ -49,6 +53,8 @@ CityscapesDataset::CityscapesDataset(bfs::path basePath, Mode mode)
     case Mode::TrainBertha:
         m_groundTruthPath = basePath / bfs::path("gtFine") / bfs::path("train_bertha");
         m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train_bertha");
+        m_laneEnergyPath = basePath / bfs::path("lane_energy") / bfs::path("train_bertha");
+        m_laneGradientPath = basePath / bfs::path("gradient") / bfs::path("train_bertha");
         m_prevLeftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("train_bertha");
         m_groundTruthSubstring = std::string("_gtFine_polygons.json");
         m_leftImgSubstring = std::string("_leftImg8bit.png");
@@ -59,6 +65,8 @@ CityscapesDataset::CityscapesDataset(bfs::path basePath, Mode mode)
     case Mode::Test:
         m_groundTruthPath = basePath / bfs::path("gtFine") / bfs::path("test");
         m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("test");
+        m_laneEnergyPath = basePath / bfs::path("lane_energy") / bfs::path("test");
+        m_laneGradientPath = basePath / bfs::path("gradient") / bfs::path("test");
         m_prevLeftImgPath = basePath / bfs::path("leftImg8bit_sequence") / bfs::path("test");
         m_groundTruthSubstring = std::string("_gtFine_polygons.json");
         m_leftImgSubstring = std::string("_leftImg8bit.png");
@@ -69,6 +77,8 @@ CityscapesDataset::CityscapesDataset(bfs::path basePath, Mode mode)
     case Mode::Val:
         m_groundTruthPath = basePath / bfs::path("gtFine") / bfs::path("val");
         m_leftImgPath = basePath / bfs::path("leftImg8bit") / bfs::path("val");
+        m_laneEnergyPath = basePath / bfs::path("lane_energy") / bfs::path("val");
+        m_laneGradientPath = basePath / bfs::path("gradient") / bfs::path("val");
         m_prevLeftImgPath = basePath / bfs::path("leftImg8bit_sequence") / bfs::path("val");
         m_groundTruthSubstring = std::string("_gtFine_polygons.json");
         m_leftImgSubstring = std::string("_leftImg8bit.png");
@@ -127,6 +137,14 @@ std::shared_ptr<DatasetEntry> CityscapesDataset::get(std::size_t i)
     cv::Mat prevLeftImg = cv::imread(prevLeftImgPath.string());
     CHECK(prevLeftImg.data, "Failed to read image " + prevLeftImgPath.string());
     result->input.prevLeft = toFloatMat(prevLeftImg);
+    auto laneEnergyImgPath = m_laneEnergyPath / bfs::path(keyToPrev(key) + m_leftImgSubstring);
+    cv::Mat laneEnergyImg = cv::imread(laneEnergyImgPath.string());
+    CHECK(laneEnergyImg.data, "Failed to read image " + laneEnergyImgPath.string());
+    laneEnergyImg.convertTo(result->gt.laneEnergy, CV_32FC1);
+    auto laneGradientImgPath = m_laneGradientPath / bfs::path(keyToPrev(key) + m_leftImgSubstring);
+    cv::Mat laneGradientImg = cv::imread(laneGradientImgPath.string());
+    CHECK(laneGradientImg.data, "Failed to read image " + laneGradientImgPath.string());
+    laneGradientImg.convertTo(result->gt.laneGradients, CV_32FC1);
     auto jsonPath = m_groundTruthPath / bfs::path(key + m_groundTruthSubstring);
     std::ifstream jsonFs(jsonPath.string());
     std::string jsonStr = std::string(std::istreambuf_iterator<char>(jsonFs), std::istreambuf_iterator<char>());
@@ -220,3 +238,4 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
 
     return {labelImg, bbDontCareImg, bbList};
 }
+

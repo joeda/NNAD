@@ -58,3 +58,41 @@ class LabelLoss(tf.keras.Model):
         tf.summary.scalar('accuracy', accuracy, step)
 
         return loss
+
+class LaneLoss(tf.keras.Model):
+    def __init__(self, name, config):
+        super().__init__(name=name)
+
+        self.weight = WeightKendall('weight_lanes')
+
+    def call(self, inputs, step):
+        results, ground_truth = inputs
+        labels = results['lane_energy']
+        gt_labels = ground_truth['lane_energy']
+
+        shape = tf.shape(labels)
+        labels = tf.reshape(labels, [-1])
+        gt_labels = tf.cast(gt_labels, tf.float32)
+        gt_labels = tf.reshape(gt_labels, [-1])
+        label_mask = tf.not_equal(gt_labels, tf.constant([0.])) # -1 is the ignore label
+        masked_labels = tf.boolean_mask(labels, label_mask)
+        masked_gt_labels = tf.boolean_mask(gt_labels, label_mask)
+
+        masked_gt_labels = tf.stop_gradient(masked_gt_labels)
+        #loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=masked_labels, labels=masked_gt_labels)
+        #loss = sparse_focal_loss(logits=masked_labels, labels=masked_gt_labels)
+        loss = tf.math.square(tf.math.subtract(masked_gt_labels, masked_labels))
+        loss = tf.reduce_sum(loss) / (tf.cast(shape[0], tf.float32) * tf.cast(shape[1], tf.float32) * tf.cast(shape[2], tf.float32))
+
+        #correct_prediction = tf.equal(tf.cast(tf.argmax(masked_labels, 1), tf.int32), masked_gt_labels)
+        #accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+        # Apply some sensible scaling before loss weighting
+        loss *= 0.1
+
+        loss = self.weight(loss, step)
+
+        tf.summary.scalar('loss', loss, step)
+        #tf.summary.scalar('accuracy', accuracy, step)
+
+        return loss

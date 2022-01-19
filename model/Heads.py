@@ -26,8 +26,10 @@ class Heads(tf.keras.Model):
 
         if config['train_labels']:
             self.label_branch = LabelBranch('label_branch', config)
+            self.lane_branch = LaneBranch('lane_branch', config)
         else:
             self.label_branch = None
+            self.lane_branch = None
 
         if config['train_boundingboxes']:
             self.box_branch = BoxBranch('box_branch', config, box_delta_regression)
@@ -42,6 +44,10 @@ class Heads(tf.keras.Model):
         if self.label_branch:
             labels = self.label_branch(x, training=train_batch_norm)
             results['pixelwise_labels'] = labels
+
+        if self.lane_branch:
+            lanes = self.lane_branch(x, training=train_batch_norm)
+            results['lane_energy'] = lanes
 
         if self.box_branch:
             box_results = self.box_branch(x, train_batch_norm=train_batch_norm)

@@ -144,6 +144,8 @@ void CropResize::apply(std::shared_ptr<DatasetEntry> data)
     handleInputImage(data->input.prevLeft, roi, doFlip);
     handleGtImage(data->gt.pixelwiseLabels, roi, doFlip);
     handleGtImage(data->gt.bbDontCareAreas, roi, doFlip);
+    handleGtImage(data->gt.laneEnergy, roi, doFlip);
+    handleGtImage(data->gt.laneGradients, roi, doFlip);
     handleBoundingBoxList(data->gt.bbList, roi, doFlip);
 }
 

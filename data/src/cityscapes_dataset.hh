@@ -45,6 +45,8 @@ private:
     std::tuple<cv::Mat, cv::Mat, BoundingBoxList> parseJson(const std::string jsonStr, cv::Size imageSize);
 
     bfs::path m_groundTruthPath;
+    bfs::path m_laneEnergyPath;
+    bfs::path m_laneGradientPath;
     bfs::path m_leftImgPath;
     bfs::path m_prevLeftImgPath;
     std::string m_groundTruthSubstring;
