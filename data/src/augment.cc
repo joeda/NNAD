@@ -216,6 +216,7 @@ void CropResize::handleBoundingBoxList(BoundingBoxList &boxList, cv::Rect roi, b
         box.x2 *= scaleX;
         box.y1 *= scaleY;
         box.y2 *= scaleY;
+        box.depth -= std::log(std::sqrt(scaleX * scaleY));
     };
 
     for (auto &box : boxList.boxes) {

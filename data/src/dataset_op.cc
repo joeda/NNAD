@@ -385,7 +385,7 @@ private:
         auto *offsetData = offsetTensor->flat<float>().data();
         auto *deltaValidData = deltaValidTensor->flat<int32_t>().data();
         auto *deltaData = deltaTensor->flat<float>().data();
-        auto *boxesData = boxesTensor->flat<int32_t>().data();
+        auto *boxesData = boxesTensor->flat<float>().data();
         for (auto &targets : list.targets) {
             for (auto &target : targets) {
                 *(objectnessData++) = target.objectness;
@@ -462,7 +462,7 @@ REGISTER_OP("Dataset")
     .Output("bb_targets_offset: float32")
     .Output("bb_targets_delta_valid: int32")
     .Output("bb_targets_delta: float32")
-    .Output("bb_list: int32")
+    .Output("bb_list: float32")
     .Output("key: string")
     .Output("original_width: int32")
     .Output("original_height: int32")

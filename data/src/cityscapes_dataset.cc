@@ -358,7 +358,7 @@ std::tuple<cv::Mat, cv::Mat, BoundingBoxList> CityscapesDataset::parseJson(const
             auto depthIdx = getPercentile(histVec, 0.5);
             auto disparity = depthIdx * (HistOpts().maxDisp / HistOpts().bins);
             auto depth = dispToDepth(disparity, opts) * 100;
-            depth = std::min(depth, 200.);
+            depth = std::min(depth, 400.);
             depth = depth > 1 ? std::log(depth) : 0;
             BoundingBox boundingBox;
             boundingBox.id = objectId++;

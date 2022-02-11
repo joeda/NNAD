@@ -20,6 +20,7 @@ import numpy as np
 import scipy as sp
 import skimage.draw
 import PIL
+from PIL import ImageFont, ImageDraw
 import os
 import json
 import matplotlib.pyplot as plt
@@ -195,14 +196,15 @@ def write_debug_boundingbox_img(boxes, image, metadata, path):
                     image[rr, cc - 1, :] = BOX_COLOR_LUT[cls]
                 if coords[1] < inference_width - 1:
                     image[rr, cc + 1, :] = BOX_COLOR_LUT[cls]
-        depths.append((box.box.depth, int(x1), int(y2)))
+        depths.append((box.box.depth, box.box.anchorDepth, int(x1), int(y2)))
     img = image.astype(np.uint8)
 #    for d, x, y in depths:
 #        cv2.putText(img, "{:.2f}".format(math.exp(d)), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
     image = PIL.Image.fromarray(img, 'RGB')
-    font = PIL.ImageFont.truetype("font_path123")
-    draw = PIL.ImageDraw.Draw(image)
-    for d, x, y in depths:
+    font = ImageFont.load_default()
+    draw = ImageDraw.Draw(image)
+    for d, d_orig, x, y in depths:
         draw.text((x, y),  "{:.2f}".format(math.exp(d)), font=font, fill=(255, 255, 255))
+        # draw.text((x, y + 9),  "{:.2f}".format(math.exp(d_orig)), font=font, fill=(255, 255, 255))
     image = image.resize((width, height), PIL.Image.BILINEAR)
     image.save(image_path)

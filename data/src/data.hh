@@ -50,6 +50,7 @@ struct BoundingBox {
     int64_t id;
     int32_t cls;
     float depth;
+    float anchorDepth;
     int32_t x1;
     int32_t y1;
     int32_t x2;

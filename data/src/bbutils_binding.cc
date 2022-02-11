@@ -128,5 +128,6 @@ PYBIND11_MODULE(bbutils, module) {
         .def_readwrite("dw", &BoundingBox::dw)
         .def_readwrite("dh", &BoundingBox::dh)
         .def_readwrite("cls", &BoundingBox::cls)
-        .def_readwrite("depth", &BoundingBox::depth);
+        .def_readwrite("depth", &BoundingBox::depth)
+        .def_readwrite("anchorDepth", &BoundingBox::anchorDepth);
 }

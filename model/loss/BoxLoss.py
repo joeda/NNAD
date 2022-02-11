@@ -85,19 +85,25 @@ class BoxLoss(tf.keras.Model):
         masked_gt_targets_bb = tf.stop_gradient(masked_gt_targets_bb)
         obj_loss = sparse_focal_loss(logits=masked_targets_obj, labels=masked_gt_targets_obj)
         cls_loss = sparse_focal_loss(logits=masked_targets_cls, labels=masked_gt_targets_cls)
-        depth_loss = tf.math.square(masked_targets_depth - masked_gt_targets_depth)
+        depth_diff = tf.math.subtract(tf.squeeze(masked_targets_depth), tf.squeeze(masked_gt_targets_depth))
+        depth_loss = tf.math.reduce_variance(depth_diff) + 0.15 * tf.math.square(tf.math.reduce_mean(depth_diff))
+        #depth_loss = tf.reduce_sum(tf.math.square(depth_diff)) - (0.95 / num_anchors) * tf.math.square(tf.reduce_sum(depth_diff))
+        #depth_loss = tf.math.square(masked_targets_depth - masked_gt_targets_depth)
+        tf.summary.histogram("bb_depth_target_gt", masked_gt_targets_depth, step)
+        tf.summary.histogram("bb_depth_target", masked_targets_depth, step)
         #cls_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=masked_targets_cls,
         #                                                          labels=masked_gt_targets_cls)
         bb_loss = smooth_l1_loss(logits=masked_targets_bb, labels=masked_gt_targets_bb, delta=0.1)
         obj_loss = tf.reduce_sum(obj_loss) / num_anchors
         cls_loss = tf.reduce_sum(cls_loss) / num_anchors
-        depth_loss = tf.reduce_sum(depth_loss) / num_anchors
+        #depth_loss = tf.reduce_sum(depth_loss) / num_anchors
+        #depth_loss = depth_loss / num_anchors
         bb_loss = tf.reduce_sum(bb_loss) / num_anchors
 
         # Apply some sensible scaling before loss weighting
         obj_loss *= 5000.0
         cls_loss *= 10000.0
-        depth_loss *= 5000.0
+        depth_loss *= 500.0
         bb_loss *= 20000.0
 
         obj_loss = self.weight_objectness(obj_loss, step)

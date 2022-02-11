@@ -27,6 +27,7 @@ class BoundingBoxEvaluator(object):
         self.fp = [0 for i in range(num_classes)]
         self.tp = [0 for i in range(num_classes)]
         self.fn = [0 for i in range(num_classes)]
+        self.depths = []
 
     def _iou(self, box1, boxes2):
         b1_x1, b1_y1, b1_x2, b1_y2 = np.split(box1, 4, axis=0)
@@ -53,6 +54,8 @@ class BoundingBoxEvaluator(object):
         min_height = 20
 
         gt_boxes = gt_boxes[0, :, :]
+        gt_boxes_float = np.copy(gt_boxes)
+        gt_boxes = gt_boxes.astype(int)
 
         def add_cls(cls):
             detections = []
@@ -60,14 +63,16 @@ class BoundingBoxEvaluator(object):
                 width = detection.box.x2 - detection.box.x1;
                 height = detection.box.y2 - detection.box.y1
                 if detection.box.cls == cls and width > min_width and height > min_height:
-                    detections += [[detection.box.x1, detection.box.y1, detection.box.x2, detection.box.y2]]
+                    detections += [[detection.box.x1, detection.box.y1, detection.box.x2, detection.box.y2, detection.box.depth]]
             detections = np.array(detections)
             gt_boxes_cls = gt_boxes[:, 0]
-            gt_boxes_depth = gt_boxes[:, 1]
             gt_boxes_w = gt_boxes[:, 4] - gt_boxes[:, 2]
             gt_boxes_h = gt_boxes[:, 5] - gt_boxes[:, 3]
             masked_gt_boxes = gt_boxes[np.logical_and(gt_boxes_cls == cls,
                                                       np.logical_and(gt_boxes_w > min_width, gt_boxes_h > min_height))]
+            masked_gt_boxes_float = gt_boxes_float[np.logical_and(gt_boxes_cls == cls,
+                                                      np.logical_and(gt_boxes_w > min_width, gt_boxes_h > min_height))]
+            masked_gt_boxes_depth = masked_gt_boxes_float[:, 1]
             masked_gt_boxes = masked_gt_boxes[:, 2:]
 
             if np.shape(masked_gt_boxes)[0] == 0:
@@ -80,7 +85,8 @@ class BoundingBoxEvaluator(object):
 
             unused_box_idx = np.array([i for i in range(np.shape(masked_gt_boxes)[0])], dtype=np.int64)
             for i in range(np.shape(detections)[0]):
-                detection = detections[i, :]
+                detection = detections[i, :4]
+                det_depth = detections[i, 4]
                 if np.shape(unused_box_idx)[0] == 0:
                     self.fp[cls] += 1
                     continue
@@ -89,6 +95,7 @@ class BoundingBoxEvaluator(object):
                 if bb_iou[bb_iou_idx] > 0.5:
                     self.tp[cls] += 1
                     unused_box_idx = np.delete(unused_box_idx, bb_iou_idx)
+                    self.depths.append([masked_gt_boxes_depth[bb_iou_idx], det_depth, cls] + detection.tolist())
                 else:
                     # TODO handle ignore areas
                     self.fp[cls] += 1
@@ -103,3 +110,6 @@ class BoundingBoxEvaluator(object):
             precision = self.tp[cls] / (self.tp[cls] + self.fp[cls]) if (self.tp[cls] + self.fp[cls]) > 0 else -1.0
             recall = self.tp[cls] / (self.tp[cls] + self.fn[cls]) if (self.tp[cls] + self.fn[cls]) > 0 else -1.0
             print('Class %d - Precision@0.5IoU: %f, Recall@0.5IoU: %f' % (cls, precision, recall))
+        with open("/tmp/box_depths.txt", "w") as f:
+            for gt, det, cls, x1, x2, y1, y2 in self.depths:
+                f.write("{} {} {} {} {} {} {}\n".format(gt, det, cls, x1, x2, y1, y2))
