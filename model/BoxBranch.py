@@ -53,7 +53,7 @@ class BoxDecoder(tf.keras.Model):
 
         self.box_decoder = SingleDecoder('box_decoder', 4 * BOXES_PER_POS)
         self.cls_decoder = SingleDecoder('cls_decoder', config['num_bb_classes'] * BOXES_PER_POS)
-        self.depth_decoder = SingleDecoder('depth_decoder', BOXES_PER_POS)
+        self.depth_decoder = SingleDecoder('depth_decoder', config['num_bb_classes'] * BOXES_PER_POS)
         self.obj_decoder = SingleDecoder('obj_decoder', 2 * BOXES_PER_POS)
         self.embedding_decoder = SingleDecoder('embedding_decoder',
                                                config['box_embedding_len'] * BOXES_PER_POS)

@@ -50,7 +50,7 @@ class BoxLoss(tf.keras.Model):
 
         targets_bb = tf.reshape(targets_bb, [-1, 4])
         targets_cls = tf.reshape(targets_cls, [-1, self.num_bb_classes])
-        targets_depth = tf.reshape(targets_depth, [-1, 1])
+        targets_depth = tf.reshape(targets_depth, [-1, self.num_bb_classes])
         targets_obj = tf.reshape(targets_obj, [-1, 2])
         gt_targets_bb = tf.reshape(gt_targets_bb, [-1, 4])
         gt_targets_cls = tf.reshape(gt_targets_cls, [-1])
@@ -85,8 +85,9 @@ class BoxLoss(tf.keras.Model):
         masked_gt_targets_bb = tf.stop_gradient(masked_gt_targets_bb)
         obj_loss = sparse_focal_loss(logits=masked_targets_obj, labels=masked_gt_targets_obj)
         cls_loss = sparse_focal_loss(logits=masked_targets_cls, labels=masked_gt_targets_cls)
-        depth_diff = tf.math.subtract(tf.squeeze(masked_targets_depth), tf.squeeze(masked_gt_targets_depth))
-        depth_loss = tf.math.reduce_variance(depth_diff) + 0.15 * tf.math.square(tf.math.reduce_mean(depth_diff))
+        depth_loss = class_specific_depth_loss(masked_targets_depth, gt_targets_cls, masked_gt_targets_depth)
+        # depth_diff = tf.math.subtract(tf.squeeze(masked_targets_depth), tf.squeeze(masked_gt_targets_depth))
+        # depth_loss = tf.math.reduce_variance(depth_diff) + 0.15 * tf.math.square(tf.math.reduce_mean(depth_diff))
         #depth_loss = tf.reduce_sum(tf.math.square(depth_diff)) - (0.95 / num_anchors) * tf.math.square(tf.reduce_sum(depth_diff))
         #depth_loss = tf.math.square(masked_targets_depth - masked_gt_targets_depth)
         tf.summary.histogram("bb_depth_target_gt", masked_gt_targets_depth, step)
@@ -103,7 +104,7 @@ class BoxLoss(tf.keras.Model):
         # Apply some sensible scaling before loss weighting
         obj_loss *= 5000.0
         cls_loss *= 10000.0
-        depth_loss *= 500.0
+        depth_loss *= 100.0
         bb_loss *= 20000.0
 
         obj_loss = self.weight_objectness(obj_loss, step)

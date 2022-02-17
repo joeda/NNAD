@@ -32,6 +32,21 @@ def sparse_focal_loss(logits, labels, gamma=1.5):
     labels = tf.one_hot(labels, depth)
     return focal_loss(logits, labels, gamma=gamma)
 
+def var_focussed_loss(pred, labels):
+    depth_diff = tf.math.subtract(tf.squeeze(pred), tf.squeeze(labels))
+    depth_loss = 0.85 * tf.math.reduce_variance(depth_diff) + 0.15 * tf.math.square(tf.math.reduce_mean(depth_diff))
+    return tf.reduce_sum(depth_loss)
+
+def class_specific_depth_loss(pred, cls_labels, depth_labels):
+    depth = pred.get_shape().as_list()[1]
+    labels = tf.one_hot(cls_labels, depth)
+    # n_pred = tf.shape(pred)[0]
+    # idxs = tf.range(n_pred)
+    # to_gather = tf.transpose(tf.stack((cls_labels, idxs)))
+    # depth_pred_correct_cls = tf.gather_nd(pred, idxs)
+    depth_pred_correct_cls = tf.reduce_sum(tf.math.multiply(labels, pred), axis=1)
+    return var_focussed_loss(depth_pred_correct_cls, depth_labels)
+
 def smooth_l1_loss(logits, labels, delta):
     diff = tf.abs(logits - labels)
     loss = tf.where(diff < delta, 0.5 * diff * diff, delta * diff - 0.5 * delta * delta)
